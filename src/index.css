@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+@theme {
+  --font-serif: "Cormorant Garamond", Georgia, serif;
+  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  --color-brand-dark: #1A130F;
+  --color-brand-surface: #241A14;
+  --color-brand-card: #2E211A;
+  --color-brand-border: #443227;
+  --color-brand-sage: #768A7D;
+  --color-brand-gold: #D4AF37;
+  --color-brand-brass: #C5A880;
+  --color-brand-text: #FAF6F0;
+  --color-brand-muted: #D1C5B8;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: #1A130F;
+  color: #FAF6F0;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, .font-serif-display {
+  font-family: var(--font-serif);
+}
+
+/* Custom smooth transitions */
+.transition-luxury {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Hide scrollbar for category tabs */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

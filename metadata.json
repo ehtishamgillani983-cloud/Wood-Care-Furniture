@@ -1,0 +1,6 @@
+{
+  "name": "Wood Care Furniture",
+  "description": "Premium Furniture Manufacturer & Wholesaler in Rawalpindi and Islamabad, Pakistan. Handcrafted living, bedroom, dining, office and custom furniture.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
