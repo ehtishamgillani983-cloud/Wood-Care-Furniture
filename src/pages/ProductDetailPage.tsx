@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useStoreData, useWishlist } from '../hooks/useStore';
 import { ProductCard } from '../components/ProductCard';
+import { SafeImage } from '../components/SafeImage';
 import { getProductWhatsAppLink } from '../utils/whatsapp';
 
 interface ProductDetailPageProps {
@@ -103,10 +104,11 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
         <div className="lg:col-span-7 space-y-4">
           {/* Main Large Image */}
           <div className="relative aspect-[4/3] rounded-3xl overflow-hidden bg-[#241A14] border border-[#443227] shadow-xl">
-            <img 
+            <SafeImage 
               src={allImages[activeImageIndex] || product.main_image} 
               alt={product.name} 
               className="w-full h-full object-cover object-center transition-all duration-300"
+              loading="eager"
             />
             {product.customizable && (
               <div className="absolute top-4 left-4 bg-[#1A130F]/90 backdrop-blur-xs text-[#FAF6F0] text-xs sm:text-sm px-3.5 py-1.5 rounded-xl border border-[#443227] shadow-md font-medium">
@@ -128,7 +130,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                       : 'border-[#443227] opacity-60 hover:opacity-100 bg-[#241A14]'
                   }`}
                 >
-                  <img src={img} alt="" className="w-full h-full object-cover" />
+                  <SafeImage src={img} alt={`${product.name} thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
                 </button>
               ))}
             </div>

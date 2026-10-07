@@ -7,6 +7,7 @@ import {
   ChevronRight 
 } from 'lucide-react';
 import { useStoreData, useWishlist } from '../hooks/useStore';
+import { SafeImage } from '../components/SafeImage';
 import { createWhatsAppLink } from '../utils/whatsapp';
 
 interface WishlistPageProps {
@@ -98,7 +99,7 @@ export const WishlistPage: React.FC<WishlistPageProps> = ({ onNavigate, onOpenPr
                 className="aspect-[4/3] w-full bg-[#F4F1EA] relative overflow-hidden cursor-pointer"
                 onClick={() => onOpenProduct(prod.slug)}
               >
-                <img
+                <SafeImage
                   src={prod.main_image}
                   alt={prod.name}
                   className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"

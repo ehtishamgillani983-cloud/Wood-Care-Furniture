@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, X, ArrowRight, Heart } from 'lucide-react';
 import { useStoreData, useWishlist } from '../hooks/useStore';
+import { SafeImage } from './SafeImage';
 
 interface SearchModalProps {
   isOpen: boolean;
@@ -127,7 +128,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose, onNav
                     className="p-2 sm:p-3 hover:bg-[#F4F1EA] rounded-xl flex items-center justify-between cursor-pointer transition-colors group"
                   >
                     <div className="flex items-center gap-3">
-                      <img 
+                      <SafeImage 
                         src={prod.main_image} 
                         alt={prod.name} 
                         className="w-14 h-14 rounded-lg object-cover bg-[#E6E1D6]"

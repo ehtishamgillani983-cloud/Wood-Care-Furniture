@@ -561,6 +561,19 @@ export const Store = {
 
     if (isSupabaseConfigured && supabase) {
       try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const userEmail = sessionData?.session?.user?.email;
+        if (userEmail) {
+          // Verify current password first
+          const { error: verifyErr } = await supabase.auth.signInWithPassword({
+            email: userEmail,
+            password: cur
+          });
+          if (verifyErr) {
+            return { success: false, error: 'Current password is incorrect. Please check and try again.' };
+          }
+        }
+
         // Update user password via Supabase Auth
         const { error } = await supabase.auth.updateUser({
           password: next

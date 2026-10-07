@@ -1,6 +1,7 @@
 import React from 'react';
 import { ChevronRight, ArrowRight, BookOpen, Clock } from 'lucide-react';
 import { useStoreData } from '../hooks/useStore';
+import { SafeImage } from '../components/SafeImage';
 
 interface BlogPageProps {
   onNavigate: (path: string) => void;
@@ -45,7 +46,7 @@ export const BlogPage: React.FC<BlogPageProps> = ({ onNavigate, onOpenPost }) =>
             className="group bg-[#221812] border border-[#443227] rounded-3xl overflow-hidden cursor-pointer shadow-xl hover:shadow-2xl transition-luxury flex flex-col justify-between hover:border-[#768A7D]"
           >
             <div className="aspect-[16/9] w-full overflow-hidden bg-[#15100D]">
-              <img
+              <SafeImage
                 src={post.featured_image}
                 alt={post.title}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"

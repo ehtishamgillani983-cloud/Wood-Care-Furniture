@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useStoreData } from '../hooks/useStore';
 import { GalleryItem } from '../types';
+import { SafeImage } from '../components/SafeImage';
 import { createWhatsAppLink } from '../utils/whatsapp';
 
 interface GalleryPageProps {
@@ -83,7 +84,7 @@ export const GalleryPage: React.FC<GalleryPageProps> = ({ onNavigate }) => {
             className="group relative rounded-3xl overflow-hidden bg-[#241A14] border border-[#443227] hover:border-[#768A7D] cursor-pointer shadow-xl transition-luxury hover:-translate-y-1.5"
           >
             <div className="aspect-[4/3] w-full overflow-hidden bg-[#1A130F]">
-              <img 
+              <SafeImage 
                 src={item.image} 
                 alt={item.title} 
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out opacity-85 group-hover:opacity-100"
@@ -127,10 +128,11 @@ export const GalleryPage: React.FC<GalleryPageProps> = ({ onNavigate }) => {
             </button>
 
             <div className="md:w-3/5 bg-black flex items-center justify-center p-4">
-              <img 
+              <SafeImage 
                 src={selectedItem.image} 
                 alt={selectedItem.title} 
                 className="max-h-[70vh] w-auto object-contain rounded-xl"
+                loading="eager"
               />
             </div>
 

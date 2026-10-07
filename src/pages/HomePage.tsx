@@ -103,6 +103,9 @@ export const HomePage: React.FC<HomePageProps> = ({
                 <img 
                   src={resolveSafeImageUrl(imgUrl)} 
                   alt="Wood Care Furniture Showroom Collection" 
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1600&q=80';
+                  }}
                   className={`w-full h-full object-cover object-[center_30%] sm:object-center transition-transform duration-[6000ms] ease-out ${
                     isCurrent ? 'scale-105' : 'scale-100'
                   }`}

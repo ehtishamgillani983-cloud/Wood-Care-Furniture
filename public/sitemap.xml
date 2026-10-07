@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <!-- Core Public Pages -->
   <url>
     <loc>https://woodgearfurniture.pk/</loc>
     <changefreq>weekly</changefreq>
@@ -23,11 +24,16 @@
   <url>
     <loc>https://woodgearfurniture.pk/services</loc>
     <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
+    <priority>0.8</priority>
   </url>
   <url>
     <loc>https://woodgearfurniture.pk/about</loc>
     <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://woodgearfurniture.pk/videos</loc>
+    <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
@@ -38,7 +44,7 @@
   <url>
     <loc>https://woodgearfurniture.pk/blog</loc>
     <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
+    <priority>0.8</priority>
   </url>
   <url>
     <loc>https://woodgearfurniture.pk/faq</loc>
@@ -48,8 +54,10 @@
   <url>
     <loc>https://woodgearfurniture.pk/contact</loc>
     <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
+    <priority>0.8</priority>
   </url>
+
+  <!-- Product Categories -->
   <url>
     <loc>https://woodgearfurniture.pk/category/living-room</loc>
     <changefreq>weekly</changefreq>
@@ -73,6 +81,60 @@
   <url>
     <loc>https://woodgearfurniture.pk/category/office</loc>
     <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://woodgearfurniture.pk/category/outdoor</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://woodgearfurniture.pk/category/kids</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <!-- Canonical Product Showcase Pages -->
+  <url>
+    <loc>https://woodgearfurniture.pk/product/sculptural-arch-rocking-chair</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://woodgearfurniture.pk/product/shamsabad-grand-curved-sectional</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://woodgearfurniture.pk/product/elysian-solid-sheesham-bed-suite</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://woodgearfurniture.pk/product/monolith-8-seater-dining-suite</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://woodgearfurniture.pk/product/rawalpindi-minimalist-l-shape-lounge</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://woodgearfurniture.pk/product/sovereign-executive-office-desk</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Woodworking Guides & Blog Articles -->
+  <url>
+    <loc>https://woodgearfurniture.pk/blog/choose-right-wood-furniture-rawalpindi</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://woodgearfurniture.pk/blog/custom-sofa-manufacturing-process</loc>
+    <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
 </urlset>

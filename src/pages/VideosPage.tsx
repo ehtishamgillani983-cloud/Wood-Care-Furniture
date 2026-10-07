@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useStoreData } from '../hooks/useStore';
 import { VideoItem } from '../types';
+import { SafeImage } from '../components/SafeImage';
 import { createWhatsAppLink } from '../utils/whatsapp';
 
 interface VideosPageProps {
@@ -61,10 +62,11 @@ export const VideosPage: React.FC<VideosPageProps> = ({ onNavigate }) => {
               onClick={() => setSelectedVideo(item)}
               className="relative aspect-[16/9] w-full bg-black cursor-pointer group overflow-hidden"
             >
-              <img 
+              <SafeImage 
                 src={item.thumbnail} 
                 alt={item.title} 
                 className="w-full h-full object-cover opacity-85 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
+                loading="lazy"
               />
               <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors flex items-center justify-center">
                 <div className="w-14 h-14 rounded-full bg-white/90 group-hover:bg-[#8A5A36] group-hover:text-white text-[#2D241E] flex items-center justify-center transition-luxury shadow-lg group-hover:scale-110">

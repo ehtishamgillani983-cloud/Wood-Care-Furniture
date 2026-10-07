@@ -48,6 +48,7 @@ import {
   VideoItem 
 } from '../types';
 import { ImageDropzone } from '../components/ImageDropzone';
+import { resolveSafeImageUrl } from '../components/SafeImage';
 
 interface AdminPortalProps {
   onNavigateHome: () => void;
@@ -830,8 +831,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
       <header className="h-16 bg-[#221812] border-b border-[#443227] px-4 sm:px-8 flex items-center justify-between sticky top-0 z-30">
         <div className="flex items-center gap-3">
           <img 
-            src={settings.logo_url || '/wood_care_logo.svg'} 
+            src={resolveSafeImageUrl(settings.logo_url) || '/wood_care_logo.svg'} 
             alt="Logo" 
+            onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/wood_care_logo.svg'; }}
             className="w-10 h-10 object-contain rounded-full border border-[#768A7D]/40"
           />
           <div>
@@ -1118,8 +1120,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                       <div key={prod.id} className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-[#2A1D16] transition-colors">
                         <div className="flex items-center gap-4">
                           <img 
-                            src={prod.main_image} 
+                            src={resolveSafeImageUrl(prod.main_image)} 
                             alt={prod.name} 
+                            onError={(e) => { (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=600&q=80'; }}
                             className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover bg-[#15100D] border border-[#443227] shrink-0" 
                           />
                           <div className="space-y-1">
@@ -1202,7 +1205,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                     <div key={cat.id} className="bg-[#221812] border border-[#443227] rounded-3xl overflow-hidden flex flex-col justify-between">
                       <div>
                         <div className="aspect-[16/9] w-full overflow-hidden bg-[#15100D] relative">
-                          <img src={cat.image} alt={cat.name} className="w-full h-full object-cover" />
+                          <img 
+                            src={resolveSafeImageUrl(cat.image)} 
+                            alt={cat.name} 
+                            onError={(e) => { (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=600&q=80'; }}
+                            className="w-full h-full object-cover" 
+                          />
                           <span className="absolute bottom-2 left-2 bg-black/75 text-white text-[10px] px-2 py-0.5 rounded-lg font-mono">
                             /{cat.slug}
                           </span>
@@ -1272,7 +1280,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                 {store.gallery.map(item => (
                   <div key={item.id} className="bg-[#221812] border border-[#443227] rounded-2xl overflow-hidden group flex flex-col justify-between">
                     <div className="aspect-square w-full overflow-hidden bg-[#15100D] relative">
-                      <img src={item.image} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                      <img 
+                        src={resolveSafeImageUrl(item.image)} 
+                        alt={item.title} 
+                        onError={(e) => { (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=600&q=80'; }}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
+                      />
                       <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                         <button
                           onClick={() => handleEditGallery(item)}
@@ -1393,7 +1406,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                 {store.blogPosts.map(post => (
                   <div key={post.id} className="bg-[#221812] border border-[#443227] rounded-3xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
-                      <img src={post.featured_image} alt="" className="w-20 h-20 rounded-2xl object-cover bg-[#15100D] shrink-0 border border-[#443227]" />
+                      <img 
+                        src={resolveSafeImageUrl(post.featured_image)} 
+                        alt={post.title} 
+                        onError={(e) => { (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=600&q=80'; }}
+                        className="w-20 h-20 rounded-2xl object-cover bg-[#15100D] shrink-0 border border-[#443227]" 
+                      />
                       <div className="space-y-1">
                         <span className="text-[10px] text-[#C5A880] uppercase tracking-wider font-semibold">{post.category} · {post.read_time}</span>
                         <h4 className="font-serif text-lg font-bold text-[#FAF6F0]">{post.title}</h4>
@@ -1526,7 +1544,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                       {m.url.includes('.mp4') || m.url.includes('data:video') ? (
                         <video src={m.url} className="w-full h-full object-cover" />
                       ) : (
-                        <img src={m.url} alt={m.name} className="w-full h-full object-cover" />
+                        <img 
+                          src={resolveSafeImageUrl(m.url)} 
+                          alt={m.name} 
+                          onError={(e) => { (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=600&q=80'; }}
+                          className="w-full h-full object-cover" 
+                        />
                       )}
 
                       <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
@@ -1650,8 +1673,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                   <div className="p-6 bg-[#15100D] border border-[#443227] rounded-2xl flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <img 
-                        src={settings.logo_url || '/wood_care_logo.svg'} 
+                        src={resolveSafeImageUrl(settings.logo_url) || '/wood_care_logo.svg'} 
                         alt="Logo" 
+                        onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/wood_care_logo.svg'; }}
                         className="h-14 w-auto object-contain rounded-full border border-[#768A7D]" 
                       />
                       <div className="flex flex-col">
@@ -1772,7 +1796,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     {(settings.hero_images || []).map((img, idx) => (
                       <div key={idx} className="relative group rounded-2xl overflow-hidden aspect-[16/9] bg-[#15100D] border border-[#443227]">
-                        <img src={img} alt="" className="w-full h-full object-cover" />
+                        <img 
+                          src={resolveSafeImageUrl(img)} 
+                          alt={`Slide ${idx + 1}`} 
+                          onError={(e) => { (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=600&q=80'; }}
+                          className="w-full h-full object-cover" 
+                        />
                         <button
                           type="button"
                           onClick={() => {
@@ -1845,7 +1874,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                 {store.videos.map(vid => (
                   <div key={vid.id} className="bg-[#221812] border border-[#443227] rounded-3xl overflow-hidden shadow-lg flex flex-col justify-between">
                     <div className="relative aspect-video bg-[#15100D] border-b border-[#443227]">
-                      <img src={vid.thumbnail} alt={vid.title} className="w-full h-full object-cover" />
+                      <img 
+                        src={resolveSafeImageUrl(vid.thumbnail)} 
+                        alt={vid.title} 
+                        onError={(e) => { (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=600&q=80'; }}
+                        className="w-full h-full object-cover" 
+                      />
                       <div className="absolute top-3 left-3 bg-[#C5A880] text-black text-[10px] uppercase font-bold px-2 py-0.5 rounded shadow">
                         {vid.category}
                       </div>

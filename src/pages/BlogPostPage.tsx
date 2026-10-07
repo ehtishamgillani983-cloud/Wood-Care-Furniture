@@ -9,6 +9,7 @@ import {
   Share2 
 } from 'lucide-react';
 import { useStoreData } from '../hooks/useStore';
+import { SafeImage } from '../components/SafeImage';
 import { getGeneralWhatsAppLink } from '../utils/whatsapp';
 
 interface BlogPostPageProps {
@@ -72,10 +73,11 @@ export const BlogPostPage: React.FC<BlogPostPageProps> = ({ slug, onNavigate, on
 
       {/* Featured Image */}
       <div className="aspect-[16/9] rounded-3xl overflow-hidden shadow-2xl bg-[#221812] border border-[#443227]">
-        <img
+        <SafeImage
           src={post.featured_image}
           alt={post.title}
           className="w-full h-full object-cover"
+          loading="eager"
         />
       </div>
 

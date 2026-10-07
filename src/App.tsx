@@ -24,9 +24,10 @@ import { ContactPage } from './pages/ContactPage';
 import { WishlistPage } from './pages/WishlistPage';
 import { AdminPortal } from './admin/AdminPortal';
 import { useStoreData } from './hooks/useStore';
+import { updatePageMeta } from './utils/seo';
 
 export default function App() {
-  const { settings, products } = useStoreData();
+  const { settings, products, blogPosts, categories } = useStoreData();
   const [currentPath, setCurrentPath] = useState<string>(() => {
     return window.location.pathname || '/';
   });
@@ -57,34 +58,141 @@ export default function App() {
     navigate(`/blog/${slug}`);
   };
 
-  // Dynamic document title updater for SEO
+  // Dynamic document title, meta description, canonical URL & robots updater for SEO
   useEffect(() => {
-    if (currentPath === '/') {
-      document.title = `${settings.brand_name} | Premium Furniture Manufacturer Rawalpindi & Islamabad`;
+    const brand = settings.brand_name || 'Woodgear Furniture';
+
+    if (currentPath === '/admin') {
+      updatePageMeta({
+        title: `Admin Management Console | ${brand}`,
+        description: 'Secure administrative management portal for inventory, catalog, and inquiries.',
+        canonicalPath: '/admin',
+        isPrivate: true
+      });
+      return;
+    }
+
+    if (currentPath === '/' || currentPath === '') {
+      updatePageMeta({
+        title: `${brand} | Premium Furniture Manufacturer Rawalpindi & Islamabad`,
+        description: settings.seo_description || 'Premier furniture manufacturer and wholesaler in Rawalpindi & Islamabad. Specializing in bespoke sofas, solid wood beds, luxury dining tables, and custom architectural woodwork.',
+        canonicalPath: '/'
+      });
     } else if (currentPath.startsWith('/product/')) {
       const slug = currentPath.replace('/product/', '');
       const prod = products.find(p => p.slug === slug || p.id === slug);
-      document.title = prod 
-        ? `${prod.name} | ${settings.brand_name} Rawalpindi`
-        : `Furniture Piece | ${settings.brand_name}`;
+      if (prod) {
+        updatePageMeta({
+          title: prod.seo_title || `${prod.name} | ${brand} Rawalpindi`,
+          description: prod.seo_description || prod.short_description || `Handcrafted ${prod.name} manufactured from seasoned timber in Shamsabad, Rawalpindi. Inquire on WhatsApp for custom sizing.`,
+          canonicalPath: `/product/${prod.slug}`
+        });
+      } else {
+        updatePageMeta({
+          title: `Handcrafted Furniture Piece | ${brand}`,
+          description: `Custom handcrafted solid wood furniture piece from ${brand} workshop in Rawalpindi.`,
+          canonicalPath: `/product/${slug}`
+        });
+      }
     } else if (currentPath.startsWith('/category/')) {
       const catSlug = currentPath.replace('/category/', '');
-      const catName = catSlug.split('-').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
-      document.title = `${catName} Furniture | ${settings.brand_name}`;
+      const cat = categories.find(c => c.slug === catSlug || c.id === catSlug);
+      const catName = cat ? cat.name : catSlug.split('-').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
+      updatePageMeta({
+        title: cat?.seo_title || `${catName} Furniture Rawalpindi & Islamabad | ${brand}`,
+        description: cat?.seo_description || `Explore handcrafted ${catName} furniture in Rawalpindi & Islamabad. Kiln-seasoned hardwood joinery, termite-proof guarantee, and bespoke sizing.`,
+        canonicalPath: `/category/${catSlug}`
+      });
+    } else if (currentPath === '/furniture' || currentPath === '/products') {
+      updatePageMeta({
+        title: `Furniture & Products Catalog | Handcrafted Solid Wood Rawalpindi | ${brand}`,
+        description: 'Browse our full furniture catalog in Rawalpindi. Solid Sheesham beds, luxury curved sofas, dining tables, and executive office furniture manufactured direct.',
+        canonicalPath: '/furniture'
+      });
     } else if (currentPath === '/gallery') {
-      document.title = `Showroom Gallery & Completed Spaces | ${settings.brand_name}`;
+      updatePageMeta({
+        title: `Completed Spaces Gallery & Showroom Portfolio | ${brand}`,
+        description: 'Browse real photographs of bespoke furniture manufactured in our Shamsabad workshop and installed across Rawalpindi and Islamabad luxury residences.',
+        canonicalPath: '/gallery'
+      });
     } else if (currentPath === '/custom') {
-      document.title = `Custom Furniture Manufacturing Rawalpindi & Islamabad | ${settings.brand_name}`;
+      updatePageMeta({
+        title: `Custom Furniture Manufacturing Rawalpindi & Islamabad | ${brand}`,
+        description: 'Order bespoke custom furniture manufactured direct in our Shamsabad workshop. Bring your dimensions, Pinterest mood boards, or sketches for consultation.',
+        canonicalPath: '/custom'
+      });
+    } else if (currentPath === '/services') {
+      updatePageMeta({
+        title: `Workshop Direct Furniture Services & Commercial Wholesale | ${brand}`,
+        description: 'Bespoke residential furniture manufacturing, commercial wholesale supply, custom upholstery, and architectural woodwork across Rawalpindi & Islamabad.',
+        canonicalPath: '/services'
+      });
+    } else if (currentPath === '/about') {
+      updatePageMeta({
+        title: `About Our Shamsabad Workshop & Artisanal Heritage | ${brand}`,
+        description: 'Discover Woodgear Furniture generational woodworking craftsmanship in Shamsabad, Rawalpindi. Kiln-seasoned hardwood joinery, termite-proofing, and direct workshop prices.',
+        canonicalPath: '/about'
+      });
+    } else if (currentPath === '/reviews') {
+      updatePageMeta({
+        title: `Customer Reviews & Client Testimonials | ${brand} Rawalpindi`,
+        description: 'Read verified testimonials and reviews from clients across Rawalpindi and Islamabad about our custom sofas, solid wood beds, and dining suites.',
+        canonicalPath: '/reviews'
+      });
+    } else if (currentPath.startsWith('/blog/')) {
+      const slug = currentPath.replace('/blog/', '');
+      const post = blogPosts.find(b => b.slug === slug || b.id === slug);
+      if (post) {
+        updatePageMeta({
+          title: `${post.title} | ${brand} Rawalpindi`,
+          description: post.excerpt || `Read our woodworking guide on ${post.title} by ${brand} master craftsmen in Rawalpindi.`,
+          canonicalPath: `/blog/${post.slug}`
+        });
+      } else {
+        updatePageMeta({
+          title: `Woodworking Guide | ${brand}`,
+          description: `Woodworking guides and furniture care tips from ${brand} workshop in Rawalpindi.`,
+          canonicalPath: `/blog/${slug}`
+        });
+      }
+    } else if (currentPath === '/blog') {
+      updatePageMeta({
+        title: `Woodworking Guides & Furniture Care Journal | ${brand}`,
+        description: 'Expert recommendations on seasoned Sheesham wood, Burmese Teak, sofa ergonomics, fabric choices, and preserving fine furniture in Rawalpindi & Islamabad.',
+        canonicalPath: '/blog'
+      });
+    } else if (currentPath === '/faq') {
+      updatePageMeta({
+        title: `Frequently Asked Questions | Custom Furniture Rawalpindi | ${brand}`,
+        description: 'Clear answers regarding solid timber seasoning, bespoke manufacturing, delivery across the Twin Cities, and showroom visits in Shamsabad.',
+        canonicalPath: '/faq'
+      });
+    } else if (currentPath === '/videos') {
+      updatePageMeta({
+        title: `Workshop Craftsmanship Videos & Showroom Reels | ${brand}`,
+        description: 'Watch our artisans at work in Shamsabad, Rawalpindi. Inspect the solid wood joinery, high-density foam layering, and finished pieces.',
+        canonicalPath: '/videos'
+      });
     } else if (currentPath === '/wishlist') {
-      document.title = `Saved Furniture Wishlist | ${settings.brand_name}`;
+      updatePageMeta({
+        title: `Saved Furniture Wishlist | ${brand}`,
+        description: 'Review your saved handcrafted furniture collection and request combined WhatsApp quotations for bespoke home suites.',
+        canonicalPath: '/wishlist'
+      });
     } else if (currentPath === '/contact') {
-      document.title = `Contact & Showroom Visit Shamsabad | ${settings.brand_name}`;
-    } else if (currentPath === '/admin') {
-      document.title = `Admin Management Console | ${settings.brand_name}`;
+      updatePageMeta({
+        title: `Contact & Showroom Visit Shamsabad | ${brand} Rawalpindi`,
+        description: 'Visit our workshop and showroom at M33J+C6H, Shamsabad, Rawalpindi. Call +92 332 5099930 or WhatsApp directly for factory-direct consultations.',
+        canonicalPath: '/contact'
+      });
     } else {
-      document.title = `${settings.brand_name} | Solid Wood Furniture Rawalpindi`;
+      updatePageMeta({
+        title: `${brand} | Solid Wood Furniture Rawalpindi`,
+        description: 'Premium handcrafted furniture for homes, offices and commercial spaces across Rawalpindi and Islamabad.',
+        canonicalPath: currentPath
+      });
     }
-  }, [currentPath, settings, products]);
+  }, [currentPath, settings, products, blogPosts, categories]);
 
   // If in admin mode, show full admin dashboard
   if (currentPath === '/admin') {
@@ -119,7 +227,7 @@ export default function App() {
       );
     }
 
-    if (currentPath.startsWith('/furniture')) {
+    if (currentPath.startsWith('/furniture') || currentPath.startsWith('/products')) {
       const urlParams = new URLSearchParams(window.location.search);
       const categoryParam = urlParams.get('category') || undefined;
       const subcategoryParam = urlParams.get('subcategory') || undefined;

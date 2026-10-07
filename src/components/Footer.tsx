@@ -10,6 +10,7 @@ import {
   Lock 
 } from 'lucide-react';
 import { useStoreData } from '../hooks/useStore';
+import { resolveSafeImageUrl } from './SafeImage';
 
 interface FooterProps {
   onNavigate: (path: string) => void;
@@ -28,13 +29,12 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
           {/* Col 1 & 2: Brand & Positioning */}
           <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center gap-3">
-              {settings.logo_url && (
-                <img 
-                  src={settings.logo_url} 
-                  alt={settings.brand_name || 'Woodgear Furniture'} 
-                  className="h-10 sm:h-12 w-auto object-contain max-w-[160px] shrink-0 rounded-lg shadow-2xs"
-                />
-              )}
+              <img 
+                src={resolveSafeImageUrl(settings.logo_url) || '/wood_care_logo.svg'} 
+                alt={settings.brand_name || 'Woodgear Furniture'} 
+                onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/wood_care_logo.svg'; }}
+                className="h-10 sm:h-12 w-auto object-contain max-w-[160px] shrink-0 rounded-lg shadow-2xs"
+              />
               <div>
                 <span className="font-serif text-xl sm:text-2xl tracking-wider uppercase font-semibold text-[#FAF9F5] block">
                   {settings.brand_name || 'WOODGEAR FURNITURE'}
