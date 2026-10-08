@@ -17,6 +17,8 @@ export const initialSettings: SiteSettings = {
   hero_heading: "Furniture Designed for Beautiful Living",
   hero_subheading: "Premium handcrafted furniture for homes, offices and commercial spaces across Rawalpindi and Islamabad.",
   hero_media_url: "/images/hero_luxury_living_1791186963111.jpg",
+  hero_video_url: "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ",
+  hero_video_overlay: 0.38,
   hero_images: [
     "/images/hero_luxury_living_1791186963111.jpg",
     "/images/cat_living_room_1791186977406.jpg",

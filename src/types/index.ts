@@ -153,6 +153,8 @@ export interface SiteSettings {
   hero_heading: string;
   hero_subheading: string;
   hero_media_url: string;
+  hero_video_url?: string;
+  hero_video_overlay?: number;
   hero_images?: string[];
   hero_cta_text: string;
   hero_cta_link: string;

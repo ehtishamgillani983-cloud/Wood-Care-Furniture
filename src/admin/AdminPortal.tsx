@@ -1759,21 +1759,101 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
             </div>
           )}
 
-          {/* TAB 11: HERO SLIDESHOW */}
+          {/* TAB 11: HERO MANAGEMENT (VIDEO & SLIDESHOW) */}
           {activeTab === 'hero' && (
             <div className="space-y-6">
               <div>
                 <h2 className="font-serif text-3xl sm:text-4xl font-bold text-[#FAF6F0]">
-                  Hero Slideshow Management
+                  Hero Video & Visual Management
                 </h2>
                 <p className="text-xs sm:text-sm text-stone-300 mt-1">
-                  Manage the background slideshow photographs and headline on the homepage.
+                  Manage the full-bleed background video, adjustable text readability overlay, headline, and slide photos.
                 </p>
               </div>
 
               <div className="bg-[#221812] border border-[#443227] rounded-3xl p-6 sm:p-8 space-y-6 text-xs">
+                {/* 1. HERO BACKGROUND VIDEO */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-sm sm:text-base font-bold text-[#FAF6F0] flex items-center gap-2">
+                        <Film className="w-4 h-4 text-[#C5A880]" />
+                        <span>Hero Background Video</span>
+                      </h3>
+                      <p className="text-stone-300 text-[11px] mt-0.5">
+                        Full-bleed edge-to-edge background video behind Woodgear logo and headline.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-stone-200 font-medium mb-1.5">
+                      Video URL (Direct MP4, WebM, or YouTube Link)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. https://www.youtube.com/watch?v=... or /videos/hero.mp4"
+                      value={settings.hero_video_url || ''}
+                      onChange={(e) => updateSettings({ hero_video_url: e.target.value })}
+                      className="w-full p-3 bg-[#15100D] border border-[#443227] rounded-xl text-stone-200 focus:outline-none focus:border-[#768A7D] font-mono text-xs"
+                    />
+                  </div>
+
+                  {/* Quick Select from Store Videos */}
+                  {store.videos.length > 0 && (
+                    <div>
+                      <label className="block text-stone-300 text-[11px] font-medium mb-1.5">
+                        Or select from workshop videos in library:
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {store.videos.map((vid) => (
+                          <button
+                            key={vid.id}
+                            type="button"
+                            onClick={() => {
+                              updateSettings({ hero_video_url: vid.video_url });
+                              showToast(`Selected "${vid.title}" for Hero`);
+                            }}
+                            className={`px-3 py-1.5 rounded-lg border text-[11px] transition-colors flex items-center gap-1.5 ${
+                              settings.hero_video_url === vid.video_url
+                                ? 'bg-[#768A7D] text-white border-[#768A7D]'
+                                : 'bg-[#15100D] text-stone-300 border-[#443227] hover:border-[#768A7D]'
+                            }`}
+                          >
+                            <span>{vid.title}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Video Overlay Darkness Slider */}
+                  <div className="pt-2 border-t border-[#443227]/60">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-stone-200 font-medium">
+                        Hero Video Dark Overlay (Text Readability)
+                      </label>
+                      <span className="font-mono text-[#C5A880]">
+                        {Math.round((settings.hero_video_overlay ?? 0.38) * 100)}%
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0.1"
+                      max="0.8"
+                      step="0.02"
+                      value={settings.hero_video_overlay ?? 0.38}
+                      onChange={(e) => updateSettings({ hero_video_overlay: parseFloat(e.target.value) })}
+                      className="w-full accent-[#C5A880] cursor-pointer"
+                    />
+                    <p className="text-[10px] text-stone-400 mt-1">
+                      Subtle overlay keeps the video sharp and vibrant while ensuring the Woodgear logo and text remain crisp and readable.
+                    </p>
+                  </div>
+                </div>
+
                 {/* Add Slide via Dropzone */}
-                <div>
+                <div className="pt-4 border-t border-[#443227]">
                   <ImageDropzone
                     value=""
                     onChange={(url) => {

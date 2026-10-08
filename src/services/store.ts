@@ -85,6 +85,8 @@ export const Store = {
       ...initialSettings,
       ...loaded,
       hero_images: loaded.hero_images && loaded.hero_images.length > 0 ? loaded.hero_images : initialSettings.hero_images,
+      hero_video_url: loaded.hero_video_url || initialSettings.hero_video_url,
+      hero_video_overlay: typeof loaded.hero_video_overlay === 'number' ? loaded.hero_video_overlay : (initialSettings.hero_video_overlay ?? 0.38),
       brand_name: loaded.brand_name || 'Wood Care Furniture',
       logo_url: loaded.logo_url || '/wood_care_logo.svg',
       favicon_url: loaded.favicon_url || '/wood_care_logo.svg'
