@@ -155,6 +155,7 @@ export interface SiteSettings {
   hero_media_url: string;
   hero_video_url?: string;
   hero_video_overlay?: number;
+  hero_videos?: string[];
   hero_images?: string[];
   hero_cta_text: string;
   hero_cta_link: string;
@@ -165,3 +166,4 @@ export interface SiteSettings {
   seo_description: string;
   seo_keywords: string;
 }
+

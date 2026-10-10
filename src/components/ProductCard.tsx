@@ -26,10 +26,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenProduct
   return (
     <div 
       onClick={() => onOpenProduct(product.slug)}
-      className="group relative bg-[#221812] border border-[#443227] hover:border-[#768A7D] rounded-3xl overflow-hidden cursor-pointer transition-luxury hover:shadow-2xl hover:-translate-y-1.5 flex flex-col justify-between"
+      className="group relative bg-white border border-[#E8DFC8] hover:border-[#8C5D36] rounded-3xl overflow-hidden cursor-pointer transition-luxury shadow-xs hover:shadow-xl hover:-translate-y-1.5 flex flex-col justify-between"
     >
-      {/* Image Container with 4:3 Ratio */}
-      <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#15100D]">
+      {/* Image Container with 4:3 Ratio and gentle inner framing */}
+      <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#F2ECE1]">
         <SafeImage 
           src={product.main_image} 
           alt={product.name}
@@ -37,53 +37,53 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenProduct
           loading="lazy"
         />
 
-        {/* Wishlist Heart Button */}
+        {/* Wishlist Heart Button - Circular with soft glass blur */}
         <button
           onClick={handleToggleWishlist}
-          className="absolute top-3.5 right-3.5 w-10 h-10 rounded-full bg-[#15100D]/90 backdrop-blur-sm border border-[#443227] shadow-md flex items-center justify-center text-stone-200 hover:text-[#C5A880] transition-luxury hover:scale-110 z-10"
+          className="absolute top-3.5 right-3.5 w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm border border-[#E0D5C3] shadow-md flex items-center justify-center text-stone-600 hover:text-[#8C5D36] transition-luxury hover:scale-110 z-10"
           aria-label={saved ? "Remove from wishlist" : "Save to wishlist"}
           title={saved ? "Remove from wishlist" : "Save to wishlist"}
         >
-          <Heart className={`w-4.5 h-4.5 transition-colors ${saved ? 'fill-[#C5A880] text-[#C5A880]' : ''}`} />
+          <Heart className={`w-4.5 h-4.5 transition-colors ${saved ? 'fill-[#8C5D36] text-[#8C5D36]' : ''}`} />
         </button>
 
-        {/* Customization Note */}
+        {/* Customization Badge */}
         {product.customizable && (
-          <div className="absolute bottom-3 left-3 bg-[#15100D]/90 backdrop-blur-xs text-[#FAF6F0] text-xs font-semibold px-2.5 py-1 rounded-lg border border-[#443227] shadow-sm">
+          <div className="absolute bottom-3 left-3 bg-[#241A14]/85 backdrop-blur-xs text-[#FAF6F0] text-[11px] font-semibold px-3 py-1 rounded-full shadow-sm">
             Customizable Sizing
           </div>
         )}
       </div>
 
-      {/* Card Content with upgraded readable typography */}
+      {/* Card Content with refined typography and contrast */}
       <div className="p-5 sm:p-6 flex flex-col flex-1 justify-between space-y-4">
         <div>
           {/* Metadata line */}
-          <div className="flex items-center gap-2 text-xs sm:text-sm text-stone-400 mb-2 font-medium">
-            <span className="text-[#C5A880] font-semibold">{category?.name || 'Furniture'}</span>
+          <div className="flex items-center gap-2 text-xs sm:text-sm text-stone-500 mb-1.5 font-medium">
+            <span className="text-[#8C5D36] font-semibold">{category?.name || 'Furniture'}</span>
             <span aria-hidden="true">·</span>
             <span className="truncate">{product.material.split('/')[0]?.trim() || 'Solid Wood'}</span>
           </div>
 
           {/* Product Title */}
-          <h3 className="font-serif text-xl sm:text-2xl font-bold text-[#FAF6F0] group-hover:text-[#C5A880] transition-colors line-clamp-1 mb-2">
+          <h3 className="font-serif text-xl sm:text-2xl font-bold text-[#241A14] group-hover:text-[#8C5D36] transition-colors line-clamp-1 mb-2">
             {product.name}
           </h3>
 
-          <p className="text-xs sm:text-sm text-stone-300 line-clamp-2 leading-relaxed">
+          <p className="text-xs sm:text-sm text-stone-600 line-clamp-2 leading-relaxed">
             {product.short_description || product.description}
           </p>
 
           {/* Dimensions summary if available */}
           {product.dimensions && (
-            <p className="text-xs text-stone-400 mt-2 font-medium truncate">
+            <p className="text-xs text-stone-500 mt-2 font-medium truncate">
               Specs: {product.dimensions}
             </p>
           )}
         </div>
 
-        {/* Action CTAs (NO PRICING - Inquiry Based) */}
-        <div className="pt-4 border-t border-[#443227] flex items-center justify-between gap-2.5">
+        {/* Action CTAs (NO PRICING - Direct WhatsApp Enquiry & Details) */}
+        <div className="pt-4 border-t border-[#F0E8DC] flex items-center justify-between gap-2.5">
           <a
             href={whatsAppLink}
             target="_blank"
@@ -98,11 +98,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenProduct
 
           <button
             onClick={() => onOpenProduct(product.slug)}
-            className="p-3 bg-[#2A1D16] hover:bg-[#38271E] border border-[#443227] text-stone-200 rounded-xl transition-colors shrink-0"
+            className="p-3 bg-[#FAF7F2] hover:bg-[#F2ECE1] border border-[#DDD3C2] text-stone-700 hover:text-[#241A14] rounded-xl transition-colors shrink-0"
             title="View Details"
             aria-label="View Details"
           >
-            <ArrowRight className="w-4 h-4 text-[#C5A880]" />
+            <ArrowRight className="w-4 h-4 text-[#8C5D36]" />
           </button>
         </div>
       </div>

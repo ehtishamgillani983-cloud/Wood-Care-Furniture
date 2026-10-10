@@ -85,6 +85,7 @@ export const Store = {
       ...initialSettings,
       ...loaded,
       hero_images: loaded.hero_images && loaded.hero_images.length > 0 ? loaded.hero_images : initialSettings.hero_images,
+      hero_videos: loaded.hero_videos && loaded.hero_videos.length > 0 ? loaded.hero_videos : initialSettings.hero_videos,
       hero_video_url: loaded.hero_video_url || initialSettings.hero_video_url,
       hero_video_overlay: typeof loaded.hero_video_overlay === 'number' ? loaded.hero_video_overlay : (initialSettings.hero_video_overlay ?? 0.38),
       brand_name: loaded.brand_name || 'Wood Care Furniture',

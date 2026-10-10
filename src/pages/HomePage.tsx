@@ -46,15 +46,42 @@ export const HomePage: React.FC<HomePageProps> = ({
 
   const [openFaq, setOpenFaq] = useState<string | null>(faqs[0]?.id || null);
 
-  // Video Background Configuration
-  const heroVideoUrl = settings.hero_video_url || 
-    (videos.length > 0 ? videos[0].video_url : "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ");
-  const youtubeId = getYouTubeId(heroVideoUrl);
-  const isDirectVideo = heroVideoUrl && (
-    heroVideoUrl.endsWith('.mp4') || 
-    heroVideoUrl.endsWith('.webm') || 
-    heroVideoUrl.includes('data:video') || 
-    heroVideoUrl.includes('blob:')
+  // Video Background Slideshow Configuration
+  // Support 4-5 videos from settings.hero_videos or fallback to settings.hero_video_url / videos list
+  const heroVideoList = React.useMemo(() => {
+    if (settings.hero_videos && settings.hero_videos.length > 0) {
+      return settings.hero_videos;
+    }
+    if (settings.hero_video_url) {
+      return [settings.hero_video_url];
+    }
+    if (videos.length > 0) {
+      return videos.map(v => v.video_url);
+    }
+    return [
+      "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ",
+      "/images/hero_luxury_living_1791186963111.jpg"
+    ];
+  }, [settings.hero_videos, settings.hero_video_url, videos]);
+
+  const [activeVideoIdx, setActiveVideoIdx] = useState(0);
+
+  // Auto-advance video slideshow every 10 seconds if multiple videos are configured
+  React.useEffect(() => {
+    if (heroVideoList.length <= 1) return;
+    const interval = setInterval(() => {
+      setActiveVideoIdx((prev) => (prev + 1) % heroVideoList.length);
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [heroVideoList.length]);
+
+  const currentHeroMedia = heroVideoList[activeVideoIdx] || heroVideoList[0] || '';
+  const currentYoutubeId = getYouTubeId(currentHeroMedia);
+  const isDirectVideo = currentHeroMedia && (
+    currentHeroMedia.endsWith('.mp4') || 
+    currentHeroMedia.endsWith('.webm') || 
+    currentHeroMedia.includes('data:video') || 
+    currentHeroMedia.includes('blob:')
   );
   const heroPoster = (settings.hero_images && settings.hero_images.length > 0 ? settings.hero_images[0] : null) || 
     "/images/hero_luxury_living_1791186963111.jpg";
@@ -67,28 +94,28 @@ export const HomePage: React.FC<HomePageProps> = ({
   return (
     <div className="w-full">
       
-      {/* 1. CINEMATIC HERO SECTION: TRUE FULL-BLEED VIDEO BACKGROUND COVERING 100% EDGE-TO-EDGE */}
-      <section className="relative overflow-hidden min-h-[85vh] sm:min-h-[90vh] flex items-center justify-center bg-[#15100D]">
+      {/* 1. CINEMATIC HERO SECTION: TRUE FULL-BLEED 4-5 VIDEO BACKGROUND SLIDESHOW COVERING 100% EDGE-TO-EDGE */}
+      <section className="relative overflow-hidden min-h-[85vh] sm:min-h-[92vh] flex items-center justify-center bg-[#15100D]">
         
         {/* Full-Bleed Video Background (100% width & height, edge-to-edge, NO blur, sharp) */}
         <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none select-none z-0">
           {isDirectVideo ? (
             <video
-              key={heroVideoUrl}
+              key={currentHeroMedia}
               autoPlay
               muted
               loop
               playsInline
               preload="auto"
               poster={resolveSafeImageUrl(heroPoster)}
-              className="w-full h-full object-cover object-center"
+              className="w-full h-full object-cover object-center transition-opacity duration-1000"
             >
-              <source src={heroVideoUrl} type="video/mp4" />
+              <source src={currentHeroMedia} type="video/mp4" />
             </video>
-          ) : youtubeId ? (
-            <div className="absolute inset-0 w-full h-full flex items-center justify-center overflow-hidden">
+          ) : currentYoutubeId ? (
+            <div key={currentYoutubeId} className="absolute inset-0 w-full h-full flex items-center justify-center overflow-hidden transition-opacity duration-1000">
               <iframe
-                src={`https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=1&mute=1&loop=1&playlist=${youtubeId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&iv_load_policy=3&disablekb=1`}
+                src={`https://www.youtube-nocookie.com/embed/${currentYoutubeId}?autoplay=1&mute=1&loop=1&playlist=${currentYoutubeId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&iv_load_policy=3&disablekb=1`}
                 title="Woodgear Furniture Background Video"
                 className="w-[125vw] h-[125vh] min-w-[100%] min-h-[100%] object-cover pointer-events-none scale-125"
                 allow="autoplay; encrypted-media; picture-in-picture"
@@ -97,9 +124,10 @@ export const HomePage: React.FC<HomePageProps> = ({
             </div>
           ) : (
             <img 
-              src={resolveSafeImageUrl(heroPoster)} 
+              key={currentHeroMedia}
+              src={resolveSafeImageUrl(currentHeroMedia || heroPoster)} 
               alt="Woodgear Furniture Showroom Collection" 
-              className="w-full h-full object-cover object-center"
+              className="w-full h-full object-cover object-center transition-opacity duration-1000"
               loading="eager"
               fetchPriority="high"
             />
@@ -114,6 +142,25 @@ export const HomePage: React.FC<HomePageProps> = ({
           {/* Gentle bottom scrim fade transitioning into the next solid section */}
           <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/60 via-black/20 to-transparent pointer-events-none" />
         </div>
+
+        {/* Video Slideshow Indicator Dots & Navigation (Interactive in foreground) */}
+        {heroVideoList.length > 1 && (
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 pointer-events-auto">
+            {heroVideoList.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => setActiveVideoIdx(idx)}
+                className={`transition-all rounded-full ${
+                  activeVideoIdx === idx 
+                    ? 'w-7 h-2 bg-[#DFC06A]' 
+                    : 'w-2 h-2 bg-white/40 hover:bg-white/70'
+                }`}
+                aria-label={`Jump to hero video ${idx + 1}`}
+                title={`Hero Video Slide ${idx + 1}`}
+              />
+            ))}
+          </div>
+        )}
 
         {/* Centered Hero Content: Woodgear Logo, Headline & Action CTAs */}
         <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28 lg:py-36 text-center flex flex-col items-center justify-center space-y-6 sm:space-y-8">

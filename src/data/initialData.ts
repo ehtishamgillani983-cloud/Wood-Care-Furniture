@@ -19,6 +19,12 @@ export const initialSettings: SiteSettings = {
   hero_media_url: "/images/hero_luxury_living_1791186963111.jpg",
   hero_video_url: "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ",
   hero_video_overlay: 0.38,
+  hero_videos: [
+    "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ",
+    "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=1",
+    "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1920&q=80",
+    "https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=1920&q=80"
+  ],
   hero_images: [
     "/images/hero_luxury_living_1791186963111.jpg",
     "/images/cat_living_room_1791186977406.jpg",
