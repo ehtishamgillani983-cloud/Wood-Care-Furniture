@@ -81,15 +81,26 @@ export const Store = {
   // --- Settings ---
   getSettings(): SiteSettings {
     const loaded = getLocal<SiteSettings>(STORAGE_KEYS.SETTINGS, initialSettings);
+    const brandName = (loaded.brand_name && !loaded.brand_name.toLowerCase().includes('woodgear')) 
+      ? loaded.brand_name 
+      : 'Wood Care Furniture';
+    const logoUrl = (loaded.logo_url && !loaded.logo_url.includes('woodgear')) 
+      ? loaded.logo_url 
+      : '/wood_care_logo.svg';
+
+    // If hero_videos contains broken rickroll YouTube demo, replace with reliable high-res showroom media
+    const rawHeroVideos = loaded.hero_videos && loaded.hero_videos.length > 0 ? loaded.hero_videos : initialSettings.hero_videos;
+    const heroVideos = rawHeroVideos?.map(v => v.includes('dQw4w9WgXcQ') ? 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1920&q=80' : v);
+
     const merged: SiteSettings = {
       ...initialSettings,
       ...loaded,
       hero_images: loaded.hero_images && loaded.hero_images.length > 0 ? loaded.hero_images : initialSettings.hero_images,
-      hero_videos: loaded.hero_videos && loaded.hero_videos.length > 0 ? loaded.hero_videos : initialSettings.hero_videos,
-      hero_video_url: loaded.hero_video_url || initialSettings.hero_video_url,
+      hero_videos: heroVideos,
+      hero_video_url: loaded.hero_video_url && !loaded.hero_video_url.includes('dQw4w9WgXcQ') ? loaded.hero_video_url : initialSettings.hero_video_url,
       hero_video_overlay: typeof loaded.hero_video_overlay === 'number' ? loaded.hero_video_overlay : (initialSettings.hero_video_overlay ?? 0.38),
-      brand_name: loaded.brand_name || 'Wood Care Furniture',
-      logo_url: loaded.logo_url || '/wood_care_logo.svg',
+      brand_name: brandName,
+      logo_url: logoUrl,
       favicon_url: loaded.favicon_url || '/wood_care_logo.svg'
     };
     return merged;

@@ -20,10 +20,11 @@ export const initialSettings: SiteSettings = {
   hero_video_url: "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ",
   hero_video_overlay: 0.38,
   hero_videos: [
-    "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ",
-    "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=1",
     "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1920&q=80",
-    "https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=1920&q=80"
+    "https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=1920&q=80",
+    "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1920&q=80",
+    "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1920&q=80",
+    "https://images.unsplash.com/photo-1617806118233-18e1de247200?auto=format&fit=crop&w=1920&q=80"
   ],
   hero_images: [
     "/images/hero_luxury_living_1791186963111.jpg",
@@ -75,7 +76,7 @@ export const initialCategories: Category[] = [
     order_index: 3,
     is_active: true,
     is_featured: true,
-    seo_title: "Dining Sets & Tables Rawalpindi | Woodgear Furniture",
+    seo_title: "Dining Sets & Tables Rawalpindi | Wood Care Furniture",
     seo_description: "Discover 6, 8, and 10-seater handcrafted solid wood dining tables and matching chairs in Rawalpindi."
   },
   {
@@ -466,7 +467,7 @@ export const initialReviews: Review[] = [
     author_name: "Dr. Ayesha Malik",
     location: "Sector F-8/2, Islamabad",
     rating: 5,
-    review_text: "We wanted a 10-seater custom dining table with specific live-edge walnut specs that we couldn't find in typical commercial shops. Woodgear Furniture crafted it to perfection. Highly recommended!",
+    review_text: "We wanted a 10-seater custom dining table with specific live-edge walnut specs that we couldn't find in typical commercial shops. Wood Care Furniture crafted it to perfection. Highly recommended!",
     is_approved: true,
     is_featured: true,
     created_at: "2026-02-28"
@@ -504,7 +505,7 @@ For exterior or high-humidity zones, Teak's natural oil content repels water and
 - Inspect the joinery: look for traditional mortise-and-tenon or dovetail joints rather than basic stapling.
 - Check the polish underside to ensure all surfaces are sealed against atmospheric moisture.
 
-At Woodgear Furniture, all our timbers undergo rigorous natural seasoning followed by protective sealing to guarantee stability in Pakistani homes.`,
+At Wood Care Furniture, all our timbers undergo rigorous natural seasoning followed by protective sealing to guarantee stability in Pakistani homes.`,
     featured_image: "/images/cat_dining_1791187001317.jpg",
     category: "Wood & Craftsmanship",
     author: "Imran Shah",

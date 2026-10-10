@@ -60,7 +60,7 @@ export default function App() {
 
   // Dynamic document title, meta description, canonical URL & robots updater for SEO
   useEffect(() => {
-    const brand = settings.brand_name || 'Woodgear Furniture';
+    const brand = settings.brand_name || 'Wood Care Furniture';
 
     if (currentPath === '/admin') {
       updatePageMeta({
@@ -130,7 +130,7 @@ export default function App() {
     } else if (currentPath === '/about') {
       updatePageMeta({
         title: `About Our Shamsabad Workshop & Artisanal Heritage | ${brand}`,
-        description: 'Discover Woodgear Furniture generational woodworking craftsmanship in Shamsabad, Rawalpindi. Kiln-seasoned hardwood joinery, termite-proofing, and direct workshop prices.',
+        description: 'Discover Wood Care Furniture generational woodworking craftsmanship in Shamsabad, Rawalpindi. Kiln-seasoned hardwood joinery, termite-proofing, and direct workshop prices.',
         canonicalPath: '/about'
       });
     } else if (currentPath === '/reviews') {

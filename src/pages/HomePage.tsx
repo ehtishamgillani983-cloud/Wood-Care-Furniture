@@ -59,8 +59,10 @@ export const HomePage: React.FC<HomePageProps> = ({
       return videos.map(v => v.video_url);
     }
     return [
-      "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ",
-      "/images/hero_luxury_living_1791186963111.jpg"
+      "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1920&q=80",
+      "https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=1920&q=80",
+      "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1920&q=80",
+      "/images/hero_luxury_living.jpg"
     ];
   }, [settings.hero_videos, settings.hero_video_url, videos]);
 
@@ -116,7 +118,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             <div key={currentYoutubeId} className="absolute inset-0 w-full h-full flex items-center justify-center overflow-hidden transition-opacity duration-1000">
               <iframe
                 src={`https://www.youtube-nocookie.com/embed/${currentYoutubeId}?autoplay=1&mute=1&loop=1&playlist=${currentYoutubeId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&iv_load_policy=3&disablekb=1`}
-                title="Woodgear Furniture Background Video"
+                title="Wood Care Furniture Background Video"
                 className="w-[125vw] h-[125vh] min-w-[100%] min-h-[100%] object-cover pointer-events-none scale-125"
                 allow="autoplay; encrypted-media; picture-in-picture"
                 tabIndex={-1}
@@ -126,7 +128,13 @@ export const HomePage: React.FC<HomePageProps> = ({
             <img 
               key={currentHeroMedia}
               src={resolveSafeImageUrl(currentHeroMedia || heroPoster)} 
-              alt="Woodgear Furniture Showroom Collection" 
+              alt="Wood Care Furniture Showroom Collection" 
+              onError={(e) => {
+                const target = e.currentTarget as HTMLImageElement;
+                if (!target.src.includes('images.unsplash.com')) {
+                  target.src = 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1920&q=80';
+                }
+              }}
               className="w-full h-full object-cover object-center transition-opacity duration-1000"
               loading="eager"
               fetchPriority="high"
@@ -165,16 +173,13 @@ export const HomePage: React.FC<HomePageProps> = ({
         {/* Centered Hero Content: Woodgear Logo, Headline & Action CTAs */}
         <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28 lg:py-36 text-center flex flex-col items-center justify-center space-y-6 sm:space-y-8">
           
-          {/* Woodgear Logo & Location Badge */}
+          {/* Wood Care Logo & Location Badge */}
           <div className="flex flex-col items-center gap-3.5">
             <div className="flex items-center justify-center">
               <img 
-                src="/woodgear_logo_full.svg" 
-                alt={settings.brand_name || "Woodgear Furniture"} 
-                onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).src = '/wood_care_logo.svg';
-                }}
-                className="h-16 sm:h-20 md:h-24 w-auto object-contain drop-shadow-[0_4px_16px_rgba(0,0,0,0.65)]"
+                src="/wood_care_logo.svg" 
+                alt={settings.brand_name || "Wood Care Furniture"} 
+                className="h-20 sm:h-24 md:h-28 w-auto object-contain rounded-full shadow-2xl drop-shadow-[0_4px_20px_rgba(0,0,0,0.85)] border-2 border-[#DFC06A]/40"
               />
             </div>
 

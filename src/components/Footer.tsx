@@ -31,13 +31,13 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             <div className="flex items-center gap-3">
               <img 
                 src={resolveSafeImageUrl(settings.logo_url) || '/wood_care_logo.svg'} 
-                alt={settings.brand_name || 'Woodgear Furniture'} 
+                alt={settings.brand_name || 'Wood Care Furniture'} 
                 onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/wood_care_logo.svg'; }}
                 className="h-10 sm:h-12 w-auto object-contain max-w-[160px] shrink-0 rounded-lg shadow-2xs"
               />
               <div>
                 <span className="font-serif text-xl sm:text-2xl tracking-wider uppercase font-semibold text-[#FAF9F5] block">
-                  {settings.brand_name || 'WOODGEAR FURNITURE'}
+                  {settings.brand_name || 'WOOD CARE FURNITURE'}
                 </span>
                 <span className="text-[10px] uppercase tracking-[0.24em] text-[#D4AF37] block mt-0.5">
                   Rawalpindi & Islamabad, Pakistan

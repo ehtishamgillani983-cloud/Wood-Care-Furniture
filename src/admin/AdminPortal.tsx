@@ -76,7 +76,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
   const store = useStoreData();
   const [settings, updateSettings] = useSettings();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(Store.isAdminAuthenticated());
-  const [emailInput, setEmailInput] = useState<string>(settings.email || 'admin@woodgearfurniture.pk');
+  const [emailInput, setEmailInput] = useState<string>(settings.email || 'imranshah1984@gmail.com');
   const [passwordInput, setPasswordInput] = useState('');
   const [authError, setAuthError] = useState(false);
   const [authErrorMessage, setAuthErrorMessage] = useState('');
@@ -1945,7 +1945,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                       className="w-full accent-[#C5A880] cursor-pointer"
                     />
                     <p className="text-[10px] text-stone-400 mt-1">
-                      Subtle overlay keeps the video sharp and vibrant while ensuring the Woodgear logo and text remain crisp and readable.
+                      Subtle overlay keeps the video sharp and vibrant while ensuring the Wood Care Furniture logo and text remain crisp and readable.
                     </p>
                   </div>
                 </div>

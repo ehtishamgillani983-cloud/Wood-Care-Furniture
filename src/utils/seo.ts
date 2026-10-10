@@ -1,5 +1,5 @@
 /**
- * SEO & Metadata Utility for Woodgear Furniture
+ * SEO & Metadata Utility for Wood Care Furniture
  * Handles dynamic canonical URLs, page titles, meta descriptions,
  * OpenGraph/Twitter cards, and strict robots indexing.
  */
@@ -11,7 +11,7 @@ export interface PageMetaConfig {
   isPrivate?: boolean;
 }
 
-const BASE_DOMAIN = 'https://woodgearfurniture.pk';
+const BASE_DOMAIN = 'https://woodcarefurniture.pk';
 
 export function updatePageMeta(config: PageMetaConfig): void {
   // 1. Page Title
