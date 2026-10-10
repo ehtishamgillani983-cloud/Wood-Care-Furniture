@@ -25,6 +25,8 @@ import { WishlistPage } from './pages/WishlistPage';
 import { AdminPortal } from './admin/AdminPortal';
 import { useStoreData } from './hooks/useStore';
 import { updatePageMeta } from './utils/seo';
+import { useScrollObserver } from './hooks/useScrollObserver';
+import { ArrowUp } from 'lucide-react';
 
 export default function App() {
   const { settings, products, blogPosts, categories } = useStoreData();
@@ -32,6 +34,26 @@ export default function App() {
     return window.location.pathname || '/';
   });
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  // Activate scroll-reveal animations across routes
+  useScrollObserver([currentPath, products.length, blogPosts.length, categories.length]);
+
+  // Track scroll for progress bar and back to top
+  useEffect(() => {
+    const handleScroll = () => {
+      const totalScroll = document.documentElement.scrollHeight - window.innerHeight;
+      if (totalScroll > 0) {
+        const currentProgress = (window.scrollY / totalScroll) * 100;
+        setScrollProgress(Math.min(100, Math.max(0, currentProgress)));
+      }
+      setShowScrollTop(window.scrollY > 400);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Sync route on popstate (browser back/forward)
   useEffect(() => {
@@ -297,7 +319,17 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FAF9F5] text-[#2D241E]">
+    <div className="min-h-screen flex flex-col bg-[#FAF9F5] text-[#2D241E] relative">
+      {/* Top Gold Scroll Progress Bar */}
+      <div 
+        className="fixed top-0 left-0 right-0 h-[3px] bg-[#DFC06A] z-50 transition-all duration-150 pointer-events-none shadow-[0_0_8px_rgba(223,192,106,0.6)]"
+        style={{ width: `${scrollProgress}%` }}
+        role="progressbar"
+        aria-valuenow={Math.round(scrollProgress)}
+        aria-valuemin={0}
+        aria-valuemax={100}
+      />
+
       {/* Sticky Header with Navigation & Dropdown */}
       <Header 
         currentPath={currentPath} 
@@ -315,6 +347,18 @@ export default function App() {
 
       {/* Mobile Sticky Bar (respects <= 15% mobile sticky limit) */}
       <MobileStickyBar />
+
+      {/* Floating Smooth Scroll to Top Button */}
+      {showScrollTop && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="fixed bottom-20 md:bottom-8 right-5 z-40 p-3 rounded-full bg-[#241A14]/90 hover:bg-[#8C5D36] text-[#DFC06A] hover:text-white border border-[#DFC06A]/40 shadow-2xl backdrop-blur-md transition-all duration-300 hover:scale-110 active:scale-95 flex items-center justify-center animate-in fade-in zoom-in-75"
+          aria-label="Scroll to top"
+          title="Scroll back to top"
+        >
+          <ArrowUp className="w-4 h-4 sm:w-5 sm:h-5" />
+        </button>
+      )}
 
       {/* Global Search Modal */}
       <SearchModal 

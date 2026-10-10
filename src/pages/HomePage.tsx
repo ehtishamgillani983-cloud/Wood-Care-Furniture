@@ -16,6 +16,7 @@ import {
   getGeneralWhatsAppLink, 
   getCustomQuoteWhatsAppLink 
 } from '../utils/whatsapp';
+import { useScrollObserver } from '../hooks/useScrollObserver';
 
 interface HomePageProps {
   onNavigate: (path: string) => void;
@@ -43,6 +44,8 @@ export const HomePage: React.FC<HomePageProps> = ({
     faqs,
     videos 
   } = useStoreData();
+
+  useScrollObserver([categories.length, products.length, reviews.length, blogPosts.length]);
 
   const [openFaq, setOpenFaq] = useState<string | null>(faqs[0]?.id || null);
 
@@ -93,15 +96,21 @@ export const HomePage: React.FC<HomePageProps> = ({
   const featuredCategories = categories.filter(c => c.is_featured !== false && c.is_active !== false);
   const approvedReviews = reviews.filter(r => r.is_approved);
 
+  const [videoError, setVideoError] = useState(false);
+
+  React.useEffect(() => {
+    setVideoError(false);
+  }, [currentHeroMedia]);
+
   return (
     <div className="w-full">
       
       {/* 1. CINEMATIC HERO SECTION: TRUE FULL-BLEED 4-5 VIDEO BACKGROUND SLIDESHOW COVERING 100% EDGE-TO-EDGE */}
-      <section className="relative overflow-hidden min-h-[85vh] sm:min-h-[92vh] flex items-center justify-center bg-[#15100D]">
+      <section className="relative overflow-hidden min-h-[75vh] max-h-[660px] sm:max-h-none sm:min-h-[88vh] lg:min-h-[92vh] flex items-center justify-center bg-[#15100D]">
         
         {/* Full-Bleed Video Background (100% width & height, edge-to-edge, NO blur, sharp) */}
         <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none select-none z-0">
-          {isDirectVideo ? (
+          {isDirectVideo && !videoError ? (
             <video
               key={currentHeroMedia}
               autoPlay
@@ -110,7 +119,8 @@ export const HomePage: React.FC<HomePageProps> = ({
               playsInline
               preload="auto"
               poster={resolveSafeImageUrl(heroPoster)}
-              className="w-full h-full object-cover object-center transition-opacity duration-1000"
+              onError={() => setVideoError(true)}
+              className="w-full h-full object-cover object-[center_35%] sm:object-center transition-opacity duration-1000"
             >
               <source src={currentHeroMedia} type="video/mp4" />
             </video>
@@ -119,7 +129,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               <iframe
                 src={`https://www.youtube-nocookie.com/embed/${currentYoutubeId}?autoplay=1&mute=1&loop=1&playlist=${currentYoutubeId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&iv_load_policy=3&disablekb=1`}
                 title="Wood Care Furniture Background Video"
-                className="w-[125vw] h-[125vh] min-w-[100%] min-h-[100%] object-cover pointer-events-none scale-125"
+                className="w-[260vw] sm:w-[125vw] h-[100%] sm:h-[125vh] min-w-[100%] min-h-[100%] object-cover pointer-events-none scale-105 sm:scale-125"
                 allow="autoplay; encrypted-media; picture-in-picture"
                 tabIndex={-1}
               />
@@ -135,7 +145,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                   target.src = 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1920&q=80';
                 }
               }}
-              className="w-full h-full object-cover object-center transition-opacity duration-1000"
+              className="w-full h-full object-cover object-[center_35%] sm:object-center transition-opacity duration-1000"
               loading="eager"
               fetchPriority="high"
             />
@@ -148,20 +158,20 @@ export const HomePage: React.FC<HomePageProps> = ({
           />
 
           {/* Gentle bottom scrim fade transitioning into the next solid section */}
-          <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/60 via-black/20 to-transparent pointer-events-none" />
+          <div className="absolute inset-x-0 bottom-0 h-20 sm:h-28 bg-gradient-to-t from-black/60 via-black/20 to-transparent pointer-events-none" />
         </div>
 
         {/* Video Slideshow Indicator Dots & Navigation (Interactive in foreground) */}
         {heroVideoList.length > 1 && (
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 pointer-events-auto">
+          <div className="absolute bottom-3 sm:bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 sm:gap-2 bg-black/50 backdrop-blur-md px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full border border-white/10 pointer-events-auto">
             {heroVideoList.map((_, idx) => (
               <button
                 key={idx}
                 onClick={() => setActiveVideoIdx(idx)}
                 className={`transition-all rounded-full ${
                   activeVideoIdx === idx 
-                    ? 'w-7 h-2 bg-[#DFC06A]' 
-                    : 'w-2 h-2 bg-white/40 hover:bg-white/70'
+                    ? 'w-6 sm:w-7 h-1.5 sm:h-2 bg-[#DFC06A]' 
+                    : 'w-1.5 sm:w-2 h-1.5 sm:h-2 bg-white/40 hover:bg-white/70'
                 }`}
                 aria-label={`Jump to hero video ${idx + 1}`}
                 title={`Hero Video Slide ${idx + 1}`}
@@ -170,60 +180,60 @@ export const HomePage: React.FC<HomePageProps> = ({
           </div>
         )}
 
-        {/* Centered Hero Content: Woodgear Logo, Headline & Action CTAs */}
-        <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28 lg:py-36 text-center flex flex-col items-center justify-center space-y-6 sm:space-y-8">
+        {/* Centered Hero Content: Elegant Headline, Badge & Action CTAs (No center logo) */}
+        <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-14 sm:py-24 lg:py-36 text-center flex flex-col items-center justify-center space-y-3.5 sm:space-y-6 md:space-y-8">
           
-          {/* Wood Care Logo & Location Badge */}
-          <div className="flex flex-col items-center gap-3.5">
-            <div className="flex items-center justify-center">
-              <img 
-                src="/wood_care_logo.svg" 
-                alt={settings.brand_name || "Wood Care Furniture"} 
-                className="h-20 sm:h-24 md:h-28 w-auto object-contain rounded-full shadow-2xl drop-shadow-[0_4px_20px_rgba(0,0,0,0.85)] border-2 border-[#DFC06A]/40"
-              />
-            </div>
-
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-black/55 backdrop-blur-md border border-[#DFC06A]/50 text-xs sm:text-sm font-semibold tracking-widest uppercase text-[#DFC06A] shadow-xl">
-              <MapPin className="w-3.5 h-3.5 text-[#DFC06A]" />
-              <span>{settings.brand_name.toUpperCase()} · RAWALPINDI & ISLAMABAD</span>
-            </div>
+          {/* Subtle Location & Brand Badge */}
+          <div className="inline-flex items-center gap-2 px-3 sm:px-5 py-1 sm:py-2 rounded-full bg-stone-900/70 backdrop-blur-md border border-[#DFC06A]/40 text-[10px] sm:text-xs md:text-sm font-medium tracking-[0.16em] sm:tracking-[0.2em] uppercase text-[#F3E5AB] shadow-2xl">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#DFC06A] animate-pulse" />
+            <span className="flex items-center gap-1.5">
+              <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#DFC06A]" />
+              <span>RAWALPINDI & ISLAMABAD · HANDCRAFTED FURNITURE</span>
+            </span>
           </div>
 
           {/* Hero Heading */}
-          <h1 className="font-serif text-3xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold tracking-tight text-[#FAF6F0] leading-[1.12] text-balance drop-shadow-[0_3px_12px_rgba(0,0,0,0.7)]">
+          <h1 className="font-serif text-[27px] leading-[1.16] sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-semibold tracking-tight text-[#FAF7F2] text-balance drop-shadow-[0_4px_24px_rgba(0,0,0,0.85)] max-w-4xl">
             {settings.hero_heading || 'Furniture Designed for Beautiful Living'}
           </h1>
 
           {/* Supporting Subheading */}
-          <p className="text-base sm:text-lg lg:text-xl text-stone-200 font-normal leading-relaxed max-w-2xl mx-auto drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]">
+          <p className="text-xs sm:text-base md:text-lg lg:text-xl text-stone-200/95 font-light leading-relaxed max-w-sm sm:max-w-2xl mx-auto drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)] tracking-wide line-clamp-3 sm:line-clamp-none">
             {settings.hero_subheading || 'Premium handcrafted furniture for homes, offices and commercial spaces across Rawalpindi and Islamabad.'}
           </p>
 
-          {/* Centered Inquiry-Based CTAs */}
-          <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-4 w-full sm:w-auto">
+          {/* Inquiry-Based CTAs */}
+          <div className="pt-1 sm:pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-2.5 sm:gap-4 w-full sm:w-auto max-w-xs sm:max-w-none">
             <button
               onClick={() => onNavigate('/furniture')}
-              className="px-8 py-4 bg-[#768A7D] hover:bg-[#5C7367] text-white font-semibold text-sm rounded-xl transition-luxury shadow-xl flex items-center justify-center gap-2 hover:scale-[1.02]"
+              className="px-6 py-3 sm:px-8 sm:py-4 bg-[#8C5D36] hover:bg-[#724827] text-white font-medium text-xs sm:text-base rounded-xl transition-all shadow-xl border border-[#DFC06A]/30 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
             >
               <span>Explore Collections</span>
               <ArrowRight className="w-4 h-4" />
             </button>
 
             <a
-              href={getGeneralWhatsAppLink(settings.whatsapp, settings.brand_name)}
+              href={getGeneralWhatsAppLink(settings.whatsapp, settings.brand_name || 'Wood Care Furniture')}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-8 py-4 bg-[#25D366] hover:bg-[#1EBE5D] text-black font-bold text-sm rounded-xl transition-luxury shadow-xl flex items-center justify-center gap-2 hover:scale-[1.02]"
+              className="px-6 py-3 sm:px-8 sm:py-4 bg-[#25D366] hover:bg-[#1EBE5D] text-slate-950 font-semibold text-xs sm:text-base rounded-xl transition-all shadow-xl flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
             >
-              <MessageCircle className="w-4.5 h-4.5" />
+              <MessageCircle className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
               <span>Enquire on WhatsApp</span>
             </a>
           </div>
 
-          {/* Subtle Craftsmanship Promise */}
-          <div className="pt-2 flex items-center gap-2 text-stone-300 text-xs tracking-wider uppercase font-medium">
-            <Sparkles className="w-3.5 h-3.5 text-[#DFC06A]" />
-            <span>Direct Workshop Manufacturing · Seasoned Hardwoods · Custom Sizing</span>
+          {/* Refined Craftsmanship Promises */}
+          <div className="pt-1.5 sm:pt-3 flex flex-wrap items-center justify-center gap-1.5 sm:gap-4 text-stone-200 text-[10px] sm:text-xs md:text-sm tracking-wider uppercase font-medium">
+            <span className="inline-flex items-center gap-1 bg-black/50 backdrop-blur-sm px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-full border border-white/10 shadow-lg">
+              <Sparkles className="w-3 h-3 text-[#DFC06A]" /> Seasoned Hardwoods
+            </span>
+            <span className="inline-flex items-center gap-1 bg-black/50 backdrop-blur-sm px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-full border border-white/10 shadow-lg">
+              <Sparkles className="w-3 h-3 text-[#DFC06A]" /> Custom Sizing
+            </span>
+            <span className="inline-flex items-center gap-1 bg-black/50 backdrop-blur-sm px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-full border border-white/10 shadow-lg">
+              <Sparkles className="w-3 h-3 text-[#DFC06A]" /> Direct Workshop
+            </span>
           </div>
 
         </div>
@@ -232,7 +242,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       {/* 2. FURNITURE CATEGORIES SECTION - SOLID WARM WHITE / IVORY */}
       <section className="bg-[#FAF7F2] py-20 sm:py-28 border-b border-[#EAE2D5] text-[#241A14]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-14 space-y-3">
+          <div className="text-center max-w-3xl mx-auto mb-14 space-y-3 scroll-reveal">
             <span className="text-xs sm:text-sm uppercase tracking-[0.28em] text-[#8C5D36] font-bold block">
               OUR CURATED SPACES
             </span>
@@ -246,11 +256,11 @@ export const HomePage: React.FC<HomePageProps> = ({
 
           {/* Categories Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
-            {featuredCategories.map((cat) => (
+            {featuredCategories.map((cat, idx) => (
               <div 
                 key={cat.id}
                 onClick={() => onNavigate(`/category/${cat.slug}`)}
-                className="group relative rounded-3xl overflow-hidden bg-[#FFFFFF] border border-[#E8DFC8] hover:border-[#8C5D36] cursor-pointer transition-luxury shadow-sm hover:shadow-2xl hover:-translate-y-2 flex flex-col justify-between"
+                className={`group relative rounded-3xl overflow-hidden bg-[#FFFFFF] border border-[#E8DFC8] hover:border-[#8C5D36] cursor-pointer transition-luxury shadow-sm hover:shadow-2xl hover:-translate-y-2 flex flex-col justify-between scroll-reveal delay-${((idx % 4) + 1) * 100}`}
               >
                 <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#F2ECE1]">
                   <SafeImage 
@@ -279,7 +289,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             ))}
           </div>
 
-          <div className="text-center pt-10">
+          <div className="text-center pt-10 scroll-reveal">
             <button 
               onClick={() => onNavigate('/furniture')}
               className="inline-flex items-center gap-2 px-8 py-3.5 bg-[#241A14] hover:bg-[#38271E] border border-[#3E2B20] text-[#FAF6F0] text-xs sm:text-sm font-semibold rounded-2xl transition-colors shadow-md hover:scale-[1.01]"
@@ -294,7 +304,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       {/* 3. FEATURED FURNITURE SHOWCASE - SOLID LIGHT WOOD-BROWN / BEIGE */}
       <section className="bg-[#F2ECE1] py-20 sm:py-28 border-b border-[#E2D7C4] text-[#241A14]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-14 space-y-3">
+          <div className="text-center max-w-3xl mx-auto mb-14 space-y-3 scroll-reveal">
             <span className="text-xs sm:text-sm uppercase tracking-[0.28em] text-[#8C5D36] font-bold block">
               HANDCRAFTED EXCELLENCE
             </span>
@@ -307,12 +317,13 @@ export const HomePage: React.FC<HomePageProps> = ({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-            {featuredProducts.map((prod) => (
-              <ProductCard 
-                key={prod.id} 
-                product={prod} 
-                onOpenProduct={onOpenProduct} 
-              />
+            {featuredProducts.map((prod, idx) => (
+              <div key={prod.id} className={`scroll-reveal delay-${((idx % 3) + 1) * 100}`}>
+                <ProductCard 
+                  product={prod} 
+                  onOpenProduct={onOpenProduct} 
+                />
+              </div>
             ))}
           </div>
         </div>
@@ -321,7 +332,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       {/* 4. CUSTOM FURNITURE SPOTLIGHT - SOLID DARK PREMIUM TONE */}
       <section className="bg-[#18110D] py-20 sm:py-28 border-b border-[#2C1E16] text-[#FAF6F0]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-          <div className="text-center max-w-3xl mx-auto space-y-3">
+          <div className="text-center max-w-3xl mx-auto space-y-3 scroll-reveal">
             <span className="text-xs sm:text-sm uppercase tracking-[0.28em] text-[#C5A880] font-bold block">
               BESPOKE COMMISSIONS
             </span>
@@ -333,7 +344,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             </p>
           </div>
 
-          <div className="bg-[#221812] text-white rounded-3xl overflow-hidden border border-[#443227] shadow-2xl grid grid-cols-1 lg:grid-cols-2">
+          <div className="bg-[#221812] text-white rounded-3xl overflow-hidden border border-[#443227] shadow-2xl grid grid-cols-1 lg:grid-cols-2 scroll-reveal-scale">
             
             {/* Image Showcase */}
             <div className="relative bg-[#15100D] min-h-[380px] lg:min-h-full flex items-center justify-center p-8 sm:p-12 overflow-hidden border-b lg:border-b-0 lg:border-r border-[#443227]">
@@ -405,7 +416,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       {/* 5. ABOUT US SECTION - SOLID CRISP WARM IVORY */}
       <section className="bg-[#FAF8F5] py-20 sm:py-28 border-b border-[#EAE3D6] text-[#241A14]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-14">
-          <div className="text-center max-w-3xl mx-auto space-y-3">
+          <div className="text-center max-w-3xl mx-auto space-y-3 scroll-reveal">
             <span className="text-xs sm:text-sm uppercase tracking-[0.28em] text-[#8C5D36] font-bold block">
               HERITAGE & CRAFTSMANSHIP
             </span>
@@ -418,7 +429,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-            <div className="space-y-6">
+            <div className="space-y-6 scroll-reveal">
               <h3 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-bold text-[#241A14] leading-snug">
                 Furniture Built to Endure Across Generations
               </h3>
@@ -499,7 +510,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       {/* 6. COMPLETED SPACES GALLERY SECTION - SOLID SOFT WARM NEUTRAL / SAND */}
       <section className="bg-[#ECE5D8] py-20 sm:py-28 border-b border-[#DDD3C2] text-[#241A14]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-14 space-y-3">
+          <div className="text-center max-w-3xl mx-auto mb-14 space-y-3 scroll-reveal">
             <span className="text-xs sm:text-sm uppercase tracking-[0.28em] text-[#8C5D36] font-bold block">
               PORTFOLIO SHOWCASE
             </span>
@@ -513,11 +524,11 @@ export const HomePage: React.FC<HomePageProps> = ({
 
           {/* Gallery grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-            {gallery.slice(0, 3).map((item) => (
+            {gallery.slice(0, 3).map((item, idx) => (
               <div 
                 key={item.id}
                 onClick={() => onNavigate('/gallery')}
-                className="group relative rounded-3xl overflow-hidden bg-[#FFFFFF] aspect-[4/3] cursor-pointer shadow-lg border border-[#DCD3C0] hover:border-[#8C5D36] transition-luxury hover:-translate-y-1.5"
+                className={`group relative rounded-3xl overflow-hidden bg-[#FFFFFF] aspect-[4/3] cursor-pointer shadow-lg border border-[#DCD3C0] hover:border-[#8C5D36] transition-luxury hover:-translate-y-1.5 scroll-reveal delay-${((idx % 3) + 1) * 100}`}
               >
                 <SafeImage 
                   src={item.image} 
@@ -539,7 +550,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             ))}
           </div>
 
-          <div className="text-center pt-10">
+          <div className="text-center pt-10 scroll-reveal">
             <button 
               onClick={() => onNavigate('/gallery')}
               className="inline-flex items-center gap-2 px-8 py-3.5 bg-[#241A14] hover:bg-[#38271E] border border-[#3E2B20] text-[#FAF6F0] text-xs sm:text-sm font-semibold rounded-2xl transition-colors shadow-md hover:scale-[1.01]"
@@ -554,7 +565,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       {/* 7. OUR SERVICES - SOLID ALABASTER / LIGHT WOOD TONE */}
       <section className="bg-[#F7F2EA] py-20 sm:py-28 border-b border-[#EAE1D3] text-[#241A14]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-14 space-y-3">
+          <div className="text-center max-w-3xl mx-auto mb-14 space-y-3 scroll-reveal">
             <span className="text-xs sm:text-sm uppercase tracking-[0.28em] text-[#8C5D36] font-bold block">
               WHAT WE OFFER
             </span>
@@ -567,10 +578,10 @@ export const HomePage: React.FC<HomePageProps> = ({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {services.map((service) => (
+            {services.map((service, idx) => (
               <div 
                 key={service.id}
-                className="bg-[#FFFFFF] border border-[#E6DDCE] rounded-3xl p-6 sm:p-7 flex flex-col justify-between hover:border-[#768A7D] transition-luxury hover:-translate-y-1 shadow-sm hover:shadow-xl"
+                className={`bg-[#FFFFFF] border border-[#E6DDCE] rounded-3xl p-6 sm:p-7 flex flex-col justify-between hover:border-[#768A7D] transition-luxury hover:-translate-y-1 shadow-sm hover:shadow-xl scroll-reveal delay-${((idx % 4) + 1) * 100}`}
               >
                 <div>
                   <h3 className="font-serif text-2xl font-bold text-[#241A14] mb-2 leading-snug">
@@ -594,7 +605,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       {/* 8. CLIENT REVIEWS - SOLID DARK ESPRESSO PREMIUM TONE */}
       <section className="bg-[#18110D] py-20 sm:py-28 border-b border-[#2C1E16] text-[#FAF6F0]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-14 space-y-3">
+          <div className="text-center max-w-3xl mx-auto mb-14 space-y-3 scroll-reveal">
             <span className="text-xs sm:text-sm uppercase tracking-[0.28em] text-[#C5A880] font-bold block">
               VERIFIED TESTIMONIALS
             </span>
@@ -607,8 +618,8 @@ export const HomePage: React.FC<HomePageProps> = ({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
-            {approvedReviews.slice(0, 3).map((rev) => (
-              <div key={rev.id} className="bg-[#221812] p-7 rounded-3xl border border-[#443227] flex flex-col justify-between shadow-lg">
+            {approvedReviews.slice(0, 3).map((rev, idx) => (
+              <div key={rev.id} className={`bg-[#221812] p-7 rounded-3xl border border-[#443227] flex flex-col justify-between shadow-lg scroll-reveal delay-${((idx % 3) + 1) * 100}`}>
                 <div className="space-y-3.5">
                   <div className="flex items-center gap-1 text-[#C5A880]">
                     {Array.from({ length: rev.rating }).map((_, i) => (
@@ -631,7 +642,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             ))}
           </div>
 
-          <div className="text-center pt-8">
+          <div className="text-center pt-8 scroll-reveal">
             <button 
               onClick={() => onNavigate('/reviews')}
               className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-[#C5A880] hover:underline"
@@ -645,7 +656,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       {/* 9. BLOG & GUIDES - SOLID WARM IVORY */}
       <section className="bg-[#FAF7F2] py-20 sm:py-28 border-b border-[#EBE3D5] text-[#241A14]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-14 space-y-3">
+          <div className="text-center max-w-3xl mx-auto mb-14 space-y-3 scroll-reveal">
             <span className="text-xs sm:text-sm uppercase tracking-[0.28em] text-[#8C5D36] font-bold block">
               WOODWORKING KNOWLEDGE
             </span>
@@ -658,11 +669,11 @@ export const HomePage: React.FC<HomePageProps> = ({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {blogPosts.slice(0, 2).map((post) => (
+            {blogPosts.slice(0, 2).map((post, idx) => (
               <div 
                 key={post.id}
                 onClick={() => onNavigate('/blog')}
-                className="bg-[#FFFFFF] border border-[#E8DFCF] hover:border-[#768A7D] rounded-3xl overflow-hidden cursor-pointer transition-luxury shadow-sm hover:shadow-xl flex flex-col justify-between"
+                className={`bg-[#FFFFFF] border border-[#E8DFCF] hover:border-[#768A7D] rounded-3xl overflow-hidden cursor-pointer transition-luxury shadow-sm hover:shadow-xl flex flex-col justify-between scroll-reveal delay-${((idx % 2) + 1) * 150}`}
               >
                 <div className="aspect-[16/9] w-full overflow-hidden bg-[#F2ECE1]">
                   <SafeImage src={post.featured_image} alt={post.title} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
@@ -685,7 +696,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       {/* 10. FAQ SECTION - SOLID SOFT WARM SAND NEUTRAL */}
       <section className="bg-[#F0EAE0] py-20 sm:py-28 border-b border-[#E2D8C9] text-[#241A14]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-14 space-y-3">
+          <div className="text-center mb-14 space-y-3 scroll-reveal">
             <span className="text-xs sm:text-sm uppercase tracking-[0.28em] text-[#8C5D36] font-bold block">
               COMMON INQUIRIES
             </span>
@@ -698,12 +709,12 @@ export const HomePage: React.FC<HomePageProps> = ({
           </div>
 
           <div className="space-y-4">
-            {faqs.slice(0, 5).map((faq) => {
+            {faqs.slice(0, 5).map((faq, idx) => {
               const isOpen = openFaq === faq.id;
               return (
                 <div
                   key={faq.id}
-                  className="bg-[#FFFFFF] border border-[#E2D8C9] rounded-3xl overflow-hidden shadow-sm transition-colors"
+                  className={`bg-[#FFFFFF] border border-[#E2D8C9] rounded-3xl overflow-hidden shadow-sm transition-colors scroll-reveal delay-${((idx % 5) + 1) * 75}`}
                 >
                   <button
                     onClick={() => setOpenFaq(isOpen ? null : faq.id)}
@@ -732,7 +743,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       {/* 11. VIP INTERIOR CONSULTATION - SOLID DEEP LUXURY CHOCOLATE */}
       <section className="bg-[#1C140F] py-20 sm:py-28 border-b border-[#2E2018] text-[#FAF6F0]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-4xl mx-auto p-10 sm:p-14 lg:p-16 rounded-3xl bg-[#241A14] border border-[#443227] shadow-2xl text-center space-y-6">
+          <div className="max-w-4xl mx-auto p-10 sm:p-14 lg:p-16 rounded-3xl bg-[#241A14] border border-[#443227] shadow-2xl text-center space-y-6 scroll-reveal-scale">
             <span className="text-xs uppercase tracking-[0.28em] text-[#C5A880] font-bold block">
               CUSTOM SPACES & CONTRACT FURNISHING
             </span>

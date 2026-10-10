@@ -490,7 +490,7 @@ export const Store = {
     const isAuth = this.isAdminAuthenticated();
     return {
       authenticated: isAuth,
-      email: session?.email || settings.email || 'admin@woodgearfurniture.pk',
+      email: session?.email || settings.email || 'admin@woodcarefurniture.pk',
       timestamp: session?.timestamp || Date.now(),
       provider: isSupabaseConfigured ? 'Supabase Authentication' : 'Local Admin Session'
     };
@@ -502,7 +502,7 @@ export const Store = {
       return { success: false, error: 'Password cannot be empty.' };
     }
 
-    const adminEmail = email?.trim() || this.getSettings().email || 'admin@woodgearfurniture.pk';
+    const adminEmail = email?.trim() || this.getSettings().email || 'admin@woodcarefurniture.pk';
 
     if (isSupabaseConfigured && supabase) {
       try {

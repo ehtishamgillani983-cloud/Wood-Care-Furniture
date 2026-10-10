@@ -744,7 +744,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
               <label className="block text-stone-200 font-medium mb-1.5">Admin Email</label>
               <input
                 type="email"
-                placeholder="admin@woodgearfurniture.pk"
+                placeholder="admin@woodcarefurniture.pk"
                 value={emailInput}
                 onChange={(e) => setEmailInput(e.target.value)}
                 required

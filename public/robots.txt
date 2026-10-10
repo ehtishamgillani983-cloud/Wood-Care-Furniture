@@ -3,4 +3,4 @@ Allow: /
 Disallow: /admin
 Disallow: /admin/*
 
-Sitemap: https://woodgearfurniture.pk/sitemap.xml
+Sitemap: https://woodcarefurniture.pk/sitemap.xml
