@@ -355,7 +355,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
         name: prodForm.name.trim(),
         category_id: catId,
         main_image: image,
-        images: [image],
+        images: (editingProduct.images && editingProduct.images.length > 0) ? editingProduct.images : [image],
         material: prodForm.material || 'Solid Hardwood',
         dimensions: prodForm.dimensions || 'Custom Size',
         finish: prodForm.finish || 'Natural Protective Lacquer',

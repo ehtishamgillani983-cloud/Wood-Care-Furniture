@@ -100,19 +100,3 @@ h1, h2, h3, .font-serif-display {
   }
 }
 
-/* Continuous Horizontal Scrolling Marquee Ribbon */
-@keyframes marquee {
-  0% { transform: translateX(0%); }
-  100% { transform: translateX(-50%); }
-}
-
-.animate-marquee {
-  display: flex;
-  width: max-content;
-  animation: marquee 25s linear infinite;
-  will-change: transform;
-}
-
-.animate-marquee:hover {
-  animation-play-state: paused;
-}

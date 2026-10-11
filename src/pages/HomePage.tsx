@@ -243,63 +243,7 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
       </section>
 
-      {/* CONTINUOUS SMOOTH ANIMATED SCROLLING MARQUEE TICKER RIBBON */}
-      <section className="bg-[#221812] border-y border-[#3E2D22] py-3 overflow-hidden select-none">
-        <div className="relative w-full flex overflow-hidden">
-          <div className="animate-marquee whitespace-nowrap flex items-center gap-8 text-xs sm:text-sm uppercase tracking-[0.22em] font-semibold text-[#E5D2B8]">
-            <span className="flex items-center gap-2">
-              <Sparkles className="w-3.5 h-3.5 text-[#DFC06A]" /> 100% Kiln-Seasoned Hardwoods · Termite-Proof Assurance
-            </span>
-            <span className="text-[#DFC06A]">✦</span>
-            <span className="flex items-center gap-2">
-              <Sparkles className="w-3.5 h-3.5 text-[#DFC06A]" /> Master Wood Joinery & Ergonomic Luxury
-            </span>
-            <span className="text-[#DFC06A]">✦</span>
-            <span className="flex items-center gap-2">
-              <Sparkles className="w-3.5 h-3.5 text-[#DFC06A]" /> Bespoke Custom Sizing & Premium Molty Foam
-            </span>
-            <span className="text-[#DFC06A]">✦</span>
-            <span className="flex items-center gap-2">
-              <Sparkles className="w-3.5 h-3.5 text-[#DFC06A]" /> Direct Factory Wholesale Advantage — Shamsabad Rawalpindi
-            </span>
-            <span className="text-[#DFC06A]">✦</span>
-            <span className="flex items-center gap-2">
-              <Sparkles className="w-3.5 h-3.5 text-[#DFC06A]" /> Rawalpindi & Islamabad Home Delivery
-            </span>
-            <span className="text-[#DFC06A]">✦</span>
-            <span className="flex items-center gap-2">
-              <Sparkles className="w-3.5 h-3.5 text-[#DFC06A]" /> Direct Workshop WhatsApp Consultation
-            </span>
-            <span className="text-[#DFC06A]">✦</span>
 
-            {/* Repeating block for seamless continuous loop */}
-            <span className="flex items-center gap-2">
-              <Sparkles className="w-3.5 h-3.5 text-[#DFC06A]" /> 100% Kiln-Seasoned Hardwoods · Termite-Proof Assurance
-            </span>
-            <span className="text-[#DFC06A]">✦</span>
-            <span className="flex items-center gap-2">
-              <Sparkles className="w-3.5 h-3.5 text-[#DFC06A]" /> Master Wood Joinery & Ergonomic Luxury
-            </span>
-            <span className="text-[#DFC06A]">✦</span>
-            <span className="flex items-center gap-2">
-              <Sparkles className="w-3.5 h-3.5 text-[#DFC06A]" /> Bespoke Custom Sizing & Premium Molty Foam
-            </span>
-            <span className="text-[#DFC06A]">✦</span>
-            <span className="flex items-center gap-2">
-              <Sparkles className="w-3.5 h-3.5 text-[#DFC06A]" /> Direct Factory Wholesale Advantage — Shamsabad Rawalpindi
-            </span>
-            <span className="text-[#DFC06A]">✦</span>
-            <span className="flex items-center gap-2">
-              <Sparkles className="w-3.5 h-3.5 text-[#DFC06A]" /> Rawalpindi & Islamabad Home Delivery
-            </span>
-            <span className="text-[#DFC06A]">✦</span>
-            <span className="flex items-center gap-2">
-              <Sparkles className="w-3.5 h-3.5 text-[#DFC06A]" /> Direct Workshop WhatsApp Consultation
-            </span>
-            <span className="text-[#DFC06A]">✦</span>
-          </div>
-        </div>
-      </section>
 
       {/* 2. FURNITURE CATEGORIES SECTION - SOLID WARM WHITE / IVORY */}
       <section className="bg-[#FAF7F2] py-20 sm:py-28 border-b border-[#EAE2D5] text-[#241A14]">

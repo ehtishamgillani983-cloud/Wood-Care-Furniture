@@ -68,6 +68,10 @@ function getLocal<T>(key: string, fallback: T): T {
   if (memoryCache[key] !== undefined) {
     return memoryCache[key] as T;
   }
+  if (typeof localStorage === 'undefined') {
+    memoryCache[key] = fallback;
+    return fallback;
+  }
   try {
     const item = localStorage.getItem(key);
     if (!item) {
@@ -86,15 +90,19 @@ function getLocal<T>(key: string, fallback: T): T {
 function setLocal<T>(key: string, value: T): void {
   // Always update in-memory cache first for instant synchronous consistency
   memoryCache[key] = value;
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch (err) {
-    // If quota exceeded in localStorage, data is still 100% saved in IndexedDB
-    console.warn(`Storage quota notice for ${key}, operating from IndexedDB.`, err);
+  if (typeof localStorage !== 'undefined') {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch (err) {
+      // If quota exceeded in localStorage, data is still 100% saved in IndexedDB
+      console.warn(`Storage quota notice for ${key}, operating from IndexedDB.`, err);
+    }
   }
   // Always persist in IndexedDB asynchronously
   setIdb(key, value).catch(() => {});
-  window.dispatchEvent(new CustomEvent('woodcare_store_updated', { detail: { key } }));
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('woodcare_store_updated', { detail: { key } }));
+  }
 }
 
 export const Store = {
@@ -144,17 +152,20 @@ export const Store = {
   // --- Categories ---
   getCategories(): Category[] {
     const list = getLocal<Category[]>(STORAGE_KEYS.CATEGORIES, initialCategories);
-    return [...list].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
+    const seen = new Set<string>();
+    const uniqueList: Category[] = [];
+    for (const c of list) {
+      if (c && c.id && !seen.has(c.id)) {
+        seen.add(c.id);
+        uniqueList.push(c);
+      }
+    }
+    return uniqueList.sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
   },
 
   saveCategory(cat: Category): void {
-    const list = [...this.getCategories()];
-    const index = list.findIndex(c => c.id === cat.id);
-    if (index >= 0) {
-      list[index] = { ...list[index], ...cat };
-    } else {
-      list.push(cat);
-    }
+    const current = this.getCategories().filter(c => c.id !== cat.id);
+    const list = [...current, cat];
     setLocal(STORAGE_KEYS.CATEGORIES, list);
     if (isSupabaseConfigured && supabase) {
       supabase.from('categories').upsert([cat]).then();
@@ -205,13 +216,20 @@ export const Store = {
   // --- Products (NO PRICES - Inquiry Based) ---
   getProducts(): Product[] {
     const list = getLocal<Product[]>(STORAGE_KEYS.PRODUCTS, initialProducts);
-    // Guarantee no price is ever displayed
-    return list.map(p => ({
-      ...p,
-      price: null,
-      price_visible: false,
-      quote_only: true
-    }));
+    const seen = new Set<string>();
+    const uniqueList: Product[] = [];
+    for (const p of list) {
+      if (p && p.id && !seen.has(p.id)) {
+        seen.add(p.id);
+        uniqueList.push({
+          ...p,
+          price: null,
+          price_visible: false,
+          quote_only: true
+        });
+      }
+    }
+    return uniqueList;
   },
 
   getProductBySlug(slug: string): Product | undefined {
@@ -222,12 +240,17 @@ export const Store = {
     if (!categoryIdOrSlug || categoryIdOrSlug === 'all') {
       return this.getProducts();
     }
+    const cleanTarget = categoryIdOrSlug.trim().toLowerCase();
     const categories = this.getCategories();
-    const targetCat = categories.find(c => c.id === categoryIdOrSlug || c.slug === categoryIdOrSlug);
+    const targetCat = categories.find(c => 
+      c.id.toLowerCase() === cleanTarget || 
+      c.slug.toLowerCase() === cleanTarget
+    );
     return this.getProducts().filter(p => {
-      if (p.category_id === categoryIdOrSlug) return true;
+      const pCat = (p.category_id || '').toLowerCase();
+      if (pCat === cleanTarget) return true;
       if (targetCat) {
-        return p.category_id === targetCat.id || p.category_id === targetCat.slug;
+        return pCat === targetCat.id.toLowerCase() || pCat === targetCat.slug.toLowerCase();
       }
       return false;
     });
@@ -241,13 +264,8 @@ export const Store = {
       price_visible: false,
       quote_only: true
     };
-    const list = [...this.getProducts()];
-    const index = list.findIndex(p => p.id === sanitizedProd.id);
-    if (index >= 0) {
-      list[index] = sanitizedProd;
-    } else {
-      list.unshift(sanitizedProd);
-    }
+    const current = this.getProducts().filter(p => p.id !== sanitizedProd.id);
+    const list = [sanitizedProd, ...current];
     setLocal(STORAGE_KEYS.PRODUCTS, list);
     if (isSupabaseConfigured && supabase) {
       supabase.from('products').upsert([sanitizedProd]).then();
