@@ -35,6 +35,7 @@ export const initialSettings: SiteSettings = {
   ],
   hero_cta_text: "Explore Furniture",
   hero_cta_link: "/furniture",
+  hero_interval_seconds: 6,
   footer_description: "Wood Care Furniture is a premier furniture manufacturer and wholesaler based in Shamsabad, Rawalpindi. We build bespoke living, bedroom, dining, and custom pieces with generational woodworking craftsmanship.",
   copyright_text: "© 2026 Wood Care Furniture. All rights reserved.",
   seo_title: "Wood Care Furniture | Luxury Solid Wood Furniture in Rawalpindi & Islamabad",

@@ -49,9 +49,12 @@ export const HomePage: React.FC<HomePageProps> = ({
 
   const [openFaq, setOpenFaq] = useState<string | null>(faqs[0]?.id || null);
 
-  // Video Background Slideshow Configuration
-  // Support 4-5 videos from settings.hero_videos or fallback to settings.hero_video_url / videos list
+  // Hero Media Slideshow Configuration
+  // Prioritizes settings.hero_images (admin-managed drag & drop uploads) or falls back to hero_videos
   const heroVideoList = React.useMemo(() => {
+    if (settings.hero_images && settings.hero_images.length > 0) {
+      return settings.hero_images;
+    }
     if (settings.hero_videos && settings.hero_videos.length > 0) {
       return settings.hero_videos;
     }
@@ -62,23 +65,24 @@ export const HomePage: React.FC<HomePageProps> = ({
       return videos.map(v => v.video_url);
     }
     return [
-      "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1920&q=80",
-      "https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=1920&q=80",
-      "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1920&q=80",
-      "/images/hero_luxury_living.jpg"
+      "/images/hero_luxury_living_1791186963111.jpg",
+      "/images/cat_living_room_1791186977406.jpg",
+      "/images/cat_bedroom_1791186990246.jpg",
+      "/images/cat_dining_1791187001317.jpg"
     ];
-  }, [settings.hero_videos, settings.hero_video_url, videos]);
+  }, [settings.hero_images, settings.hero_videos, settings.hero_video_url, videos]);
 
   const [activeVideoIdx, setActiveVideoIdx] = useState(0);
 
-  // Auto-advance video slideshow every 10 seconds if multiple videos are configured
+  // Auto-advance hero slideshow using settings.hero_interval_seconds
   React.useEffect(() => {
     if (heroVideoList.length <= 1) return;
+    const intervalSec = Math.max(2, Math.min(30, Number(settings.hero_interval_seconds) || 6));
     const interval = setInterval(() => {
       setActiveVideoIdx((prev) => (prev + 1) % heroVideoList.length);
-    }, 10000);
+    }, intervalSec * 1000);
     return () => clearInterval(interval);
-  }, [heroVideoList.length]);
+  }, [heroVideoList.length, settings.hero_interval_seconds]);
 
   const currentHeroMedia = heroVideoList[activeVideoIdx] || heroVideoList[0] || '';
   const currentYoutubeId = getYouTubeId(currentHeroMedia);
@@ -105,10 +109,10 @@ export const HomePage: React.FC<HomePageProps> = ({
   return (
     <div className="w-full">
       
-      {/* 1. CINEMATIC HERO SECTION: TRUE FULL-BLEED 4-5 VIDEO BACKGROUND SLIDESHOW COVERING 100% EDGE-TO-EDGE */}
-      <section className="relative overflow-hidden min-h-[75vh] max-h-[660px] sm:max-h-none sm:min-h-[88vh] lg:min-h-[92vh] flex items-center justify-center bg-[#15100D]">
+      {/* 1. CINEMATIC HERO SECTION: PROPORTIONAL MOBILE HEIGHT & TRUE FULL-BLEED SLIDESHOW */}
+      <section className="relative overflow-hidden min-h-[520px] h-[78vh] max-h-[660px] sm:max-h-none sm:min-h-[88vh] lg:min-h-[92vh] flex items-center justify-center bg-[#15100D]">
         
-        {/* Full-Bleed Video Background (100% width & height, edge-to-edge, NO blur, sharp) */}
+        {/* Full-Bleed Media Background (100% width & height, edge-to-edge, NO blur, perfectly framed on mobile) */}
         <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none select-none z-0">
           {isDirectVideo && !videoError ? (
             <video
@@ -120,12 +124,12 @@ export const HomePage: React.FC<HomePageProps> = ({
               preload="auto"
               poster={resolveSafeImageUrl(heroPoster)}
               onError={() => setVideoError(true)}
-              className="w-full h-full object-cover object-[center_35%] sm:object-center transition-opacity duration-1000"
+              className="w-full h-full object-cover object-center transition-opacity duration-700"
             >
               <source src={currentHeroMedia} type="video/mp4" />
             </video>
           ) : currentYoutubeId ? (
-            <div key={currentYoutubeId} className="absolute inset-0 w-full h-full flex items-center justify-center overflow-hidden transition-opacity duration-1000">
+            <div key={currentYoutubeId} className="absolute inset-0 w-full h-full flex items-center justify-center overflow-hidden transition-opacity duration-700">
               <iframe
                 src={`https://www.youtube-nocookie.com/embed/${currentYoutubeId}?autoplay=1&mute=1&loop=1&playlist=${currentYoutubeId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&iv_load_policy=3&disablekb=1`}
                 title="Wood Care Furniture Background Video"
@@ -145,86 +149,86 @@ export const HomePage: React.FC<HomePageProps> = ({
                   target.src = 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1920&q=80';
                 }
               }}
-              className="w-full h-full object-cover object-[center_35%] sm:object-center transition-opacity duration-1000"
+              className="w-full h-full object-cover object-center transition-all duration-700"
               loading="eager"
               fetchPriority="high"
             />
           )}
 
-          {/* Subtle adjustable overlay for text readability - sharp and vibrant, never blurred */}
+          {/* Subtle adjustable overlay for text readability - sharp and vibrant */}
           <div 
             className="absolute inset-0 bg-black pointer-events-none transition-opacity duration-300"
-            style={{ opacity: overlayOpacity }}
+            style={{ opacity: Math.min(overlayOpacity, 0.48) }}
           />
 
           {/* Gentle bottom scrim fade transitioning into the next solid section */}
-          <div className="absolute inset-x-0 bottom-0 h-20 sm:h-28 bg-gradient-to-t from-black/60 via-black/20 to-transparent pointer-events-none" />
+          <div className="absolute inset-x-0 bottom-0 h-16 sm:h-28 bg-gradient-to-t from-black/60 via-black/20 to-transparent pointer-events-none" />
         </div>
 
-        {/* Video Slideshow Indicator Dots & Navigation (Interactive in foreground) */}
+        {/* Slideshow Indicator Dots & Navigation */}
         {heroVideoList.length > 1 && (
-          <div className="absolute bottom-3 sm:bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 sm:gap-2 bg-black/50 backdrop-blur-md px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full border border-white/10 pointer-events-auto">
+          <div className="absolute bottom-2.5 sm:bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 sm:gap-2 bg-black/50 backdrop-blur-md px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full border border-white/10 pointer-events-auto">
             {heroVideoList.map((_, idx) => (
               <button
                 key={idx}
                 onClick={() => setActiveVideoIdx(idx)}
                 className={`transition-all rounded-full ${
                   activeVideoIdx === idx 
-                    ? 'w-6 sm:w-7 h-1.5 sm:h-2 bg-[#DFC06A]' 
+                    ? 'w-5 sm:w-7 h-1.5 sm:h-2 bg-[#DFC06A]' 
                     : 'w-1.5 sm:w-2 h-1.5 sm:h-2 bg-white/40 hover:bg-white/70'
                 }`}
-                aria-label={`Jump to hero video ${idx + 1}`}
-                title={`Hero Video Slide ${idx + 1}`}
+                aria-label={`Jump to hero slide ${idx + 1}`}
+                title={`Hero Slide ${idx + 1}`}
               />
             ))}
           </div>
         )}
 
-        {/* Centered Hero Content: Elegant Headline, Badge & Action CTAs (No center logo) */}
-        <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-14 sm:py-24 lg:py-36 text-center flex flex-col items-center justify-center space-y-3.5 sm:space-y-6 md:space-y-8">
+        {/* Centered Hero Content: Compact, Elegant Headline, Badge & Action CTAs */}
+        <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-10 sm:py-24 lg:py-36 text-center flex flex-col items-center justify-center space-y-3 sm:space-y-6 md:space-y-8">
           
           {/* Subtle Location & Brand Badge */}
-          <div className="inline-flex items-center gap-2 px-3 sm:px-5 py-1 sm:py-2 rounded-full bg-stone-900/70 backdrop-blur-md border border-[#DFC06A]/40 text-[10px] sm:text-xs md:text-sm font-medium tracking-[0.16em] sm:tracking-[0.2em] uppercase text-[#F3E5AB] shadow-2xl">
+          <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-0.5 sm:py-2 rounded-full bg-stone-900/70 backdrop-blur-md border border-[#DFC06A]/40 text-[9px] sm:text-xs md:text-sm font-medium tracking-[0.16em] sm:tracking-[0.2em] uppercase text-[#F3E5AB] shadow-2xl">
             <span className="w-1.5 h-1.5 rounded-full bg-[#DFC06A] animate-pulse" />
-            <span className="flex items-center gap-1.5">
+            <span className="flex items-center gap-1 sm:gap-1.5">
               <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#DFC06A]" />
               <span>RAWALPINDI & ISLAMABAD · HANDCRAFTED FURNITURE</span>
             </span>
           </div>
 
           {/* Hero Heading */}
-          <h1 className="font-serif text-[27px] leading-[1.16] sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-semibold tracking-tight text-[#FAF7F2] text-balance drop-shadow-[0_4px_24px_rgba(0,0,0,0.85)] max-w-4xl">
+          <h1 className="font-serif text-2xl leading-[1.16] sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-semibold tracking-tight text-[#FAF7F2] text-balance drop-shadow-[0_4px_24px_rgba(0,0,0,0.85)] max-w-4xl">
             {settings.hero_heading || 'Furniture Designed for Beautiful Living'}
           </h1>
 
           {/* Supporting Subheading */}
-          <p className="text-xs sm:text-base md:text-lg lg:text-xl text-stone-200/95 font-light leading-relaxed max-w-sm sm:max-w-2xl mx-auto drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)] tracking-wide line-clamp-3 sm:line-clamp-none">
+          <p className="text-xs sm:text-base md:text-lg lg:text-xl text-stone-200/95 font-light leading-relaxed max-w-xs sm:max-w-2xl mx-auto drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)] tracking-wide line-clamp-2 sm:line-clamp-none">
             {settings.hero_subheading || 'Premium handcrafted furniture for homes, offices and commercial spaces across Rawalpindi and Islamabad.'}
           </p>
 
-          {/* Inquiry-Based CTAs */}
-          <div className="pt-1 sm:pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-2.5 sm:gap-4 w-full sm:w-auto max-w-xs sm:max-w-none">
+          {/* Inquiry-Based Action CTAs: Responsive Horizontal row on mobile */}
+          <div className="pt-1 sm:pt-2 flex flex-row items-center justify-center gap-2.5 sm:gap-4 w-full sm:w-auto max-w-sm sm:max-w-none">
             <button
               onClick={() => onNavigate('/furniture')}
-              className="px-6 py-3 sm:px-8 sm:py-4 bg-[#8C5D36] hover:bg-[#724827] text-white font-medium text-xs sm:text-base rounded-xl transition-all shadow-xl border border-[#DFC06A]/30 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
+              className="flex-1 sm:flex-initial px-4 py-2.5 sm:px-8 sm:py-4 bg-[#8C5D36] hover:bg-[#724827] text-white font-medium text-xs sm:text-base rounded-xl transition-all shadow-xl border border-[#DFC06A]/30 flex items-center justify-center gap-1.5 sm:gap-2 hover:scale-[1.02] active:scale-[0.98]"
             >
-              <span>Explore Collections</span>
-              <ArrowRight className="w-4 h-4" />
+              <span>Explore</span>
+              <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
 
             <a
               href={getGeneralWhatsAppLink(settings.whatsapp, settings.brand_name || 'Wood Care Furniture')}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-6 py-3 sm:px-8 sm:py-4 bg-[#25D366] hover:bg-[#1EBE5D] text-slate-950 font-semibold text-xs sm:text-base rounded-xl transition-all shadow-xl flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
+              className="flex-1 sm:flex-initial px-4 py-2.5 sm:px-8 sm:py-4 bg-[#25D366] hover:bg-[#1EBE5D] text-slate-950 font-semibold text-xs sm:text-base rounded-xl transition-all shadow-xl flex items-center justify-center gap-1.5 sm:gap-2 hover:scale-[1.02] active:scale-[0.98]"
             >
-              <MessageCircle className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
-              <span>Enquire on WhatsApp</span>
+              <MessageCircle className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5" />
+              <span>WhatsApp</span>
             </a>
           </div>
 
           {/* Refined Craftsmanship Promises */}
-          <div className="pt-1.5 sm:pt-3 flex flex-wrap items-center justify-center gap-1.5 sm:gap-4 text-stone-200 text-[10px] sm:text-xs md:text-sm tracking-wider uppercase font-medium">
+          <div className="pt-1 sm:pt-3 flex flex-wrap items-center justify-center gap-1.5 sm:gap-4 text-stone-200 text-[9px] sm:text-xs md:text-sm tracking-wider uppercase font-medium">
             <span className="inline-flex items-center gap-1 bg-black/50 backdrop-blur-sm px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-full border border-white/10 shadow-lg">
               <Sparkles className="w-3 h-3 text-[#DFC06A]" /> Seasoned Hardwoods
             </span>
@@ -301,119 +305,7 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
       </section>
 
-      {/* 3. FEATURED FURNITURE SHOWCASE - SOLID LIGHT WOOD-BROWN / BEIGE */}
-      <section className="bg-[#F2ECE1] py-20 sm:py-28 border-b border-[#E2D7C4] text-[#241A14]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-14 space-y-3 scroll-reveal">
-            <span className="text-xs sm:text-sm uppercase tracking-[0.28em] text-[#8C5D36] font-bold block">
-              HANDCRAFTED EXCELLENCE
-            </span>
-            <h2 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-bold text-[#241A14] tracking-tight">
-              Featured Furniture
-            </h2>
-            <p className="text-sm sm:text-base text-stone-600 leading-relaxed max-w-xl mx-auto">
-              Every piece is built to order in our Shamsabad workshop with seasoned hardwoods, precision craftsmanship, and tailored custom options.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-            {featuredProducts.map((prod, idx) => (
-              <div key={prod.id} className={`scroll-reveal delay-${((idx % 3) + 1) * 100}`}>
-                <ProductCard 
-                  product={prod} 
-                  onOpenProduct={onOpenProduct} 
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* 4. CUSTOM FURNITURE SPOTLIGHT - SOLID DARK PREMIUM TONE */}
-      <section className="bg-[#18110D] py-20 sm:py-28 border-b border-[#2C1E16] text-[#FAF6F0]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-          <div className="text-center max-w-3xl mx-auto space-y-3 scroll-reveal">
-            <span className="text-xs sm:text-sm uppercase tracking-[0.28em] text-[#C5A880] font-bold block">
-              BESPOKE COMMISSIONS
-            </span>
-            <h2 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-bold text-[#FAF6F0]">
-              Custom Furniture: Made Around Your Space
-            </h2>
-            <p className="text-sm sm:text-base text-stone-300 max-w-xl mx-auto">
-              Bring your Pinterest inspiration, architectural blueprints, or sketches. We manufacture bespoke furniture to your exact measurements.
-            </p>
-          </div>
-
-          <div className="bg-[#221812] text-white rounded-3xl overflow-hidden border border-[#443227] shadow-2xl grid grid-cols-1 lg:grid-cols-2 scroll-reveal-scale">
-            
-            {/* Image Showcase */}
-            <div className="relative bg-[#15100D] min-h-[380px] lg:min-h-full flex items-center justify-center p-8 sm:p-12 overflow-hidden border-b lg:border-b-0 lg:border-r border-[#443227]">
-              <SafeImage 
-                src="/images/cat_custom_chair.jpg" 
-                alt="Sculptural Arch Rocking Chair" 
-                className="max-h-[460px] w-auto object-contain rounded-2xl shadow-2xl transition-transform duration-700 hover:scale-105"
-              />
-              <div className="absolute top-5 left-5 bg-[#C5A880] text-[#15100D] text-[11px] uppercase font-bold tracking-widest px-3 py-1 rounded-md shadow-md">
-                Signature Bespoke Creation
-              </div>
-            </div>
-
-            {/* Copy & Custom Action */}
-            <div className="p-8 sm:p-12 lg:p-16 flex flex-col justify-between space-y-6">
-              <div className="space-y-4">
-                <h3 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-[#FAF6F0] leading-tight">
-                  Crafted to Your Exact Specifications
-                </h3>
-
-                <p className="text-sm sm:text-base text-stone-300 leading-relaxed pt-1">
-                  Featured here is our signature continuous arch rocking lounge chair: steam-bent seasoned walnut paired with an integrated ambient luminaire arch and plush emerald green velvet seating.
-                </p>
-
-                <div className="space-y-3 pt-3 text-xs sm:text-sm text-stone-200">
-                  <div className="flex items-center gap-2.5">
-                    <Check className="w-4 h-4 text-[#C5A880] shrink-0" />
-                    <span>Bring any Pinterest photo, architectural drawing, or sketch</span>
-                  </div>
-                  <div className="flex items-center gap-2.5">
-                    <Check className="w-4 h-4 text-[#C5A880] shrink-0" />
-                    <span>Choice of solid Sheesham (Tahli), Burmese Teak, or American Walnut</span>
-                  </div>
-                  <div className="flex items-center gap-2.5">
-                    <Check className="w-4 h-4 text-[#C5A880] shrink-0" />
-                    <span>Tailored upholstery from 120+ imported textured fabrics & velvets</span>
-                  </div>
-                  <div className="flex items-center gap-2.5">
-                    <Check className="w-4 h-4 text-[#C5A880] shrink-0" />
-                    <span>Direct factory advantage with no middleman retail markup</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-4 flex flex-col sm:flex-row items-center gap-4">
-                <a
-                  href={getCustomQuoteWhatsAppLink(settings.whatsapp, settings.brand_name)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full sm:w-auto px-7 py-3.5 bg-[#25D366] hover:bg-[#1EBE5D] text-black font-bold text-xs sm:text-sm rounded-xl transition-luxury flex items-center justify-center gap-2 shadow-lg hover:scale-[1.01]"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                  <span>Enquire on WhatsApp</span>
-                </a>
-
-                <button
-                  onClick={() => onNavigate('/custom')}
-                  className="w-full sm:w-auto px-7 py-3.5 bg-[#2A1D16] hover:bg-[#38271E] border border-[#443227] text-[#FAF6F0] font-semibold text-xs sm:text-sm rounded-xl transition-luxury text-center hover:scale-[1.01]"
-                >
-                  Custom Order Process →
-                </button>
-              </div>
-
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 5. ABOUT US SECTION - SOLID CRISP WARM IVORY */}
+      {/* 3. ABOUT US SECTION - SOLID CRISP WARM IVORY */}
       <section className="bg-[#FAF8F5] py-20 sm:py-28 border-b border-[#EAE3D6] text-[#241A14]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-14">
           <div className="text-center max-w-3xl mx-auto space-y-3 scroll-reveal">
@@ -507,62 +399,7 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
       </section>
 
-      {/* 6. COMPLETED SPACES GALLERY SECTION - SOLID SOFT WARM NEUTRAL / SAND */}
-      <section className="bg-[#ECE5D8] py-20 sm:py-28 border-b border-[#DDD3C2] text-[#241A14]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-14 space-y-3 scroll-reveal">
-            <span className="text-xs sm:text-sm uppercase tracking-[0.28em] text-[#8C5D36] font-bold block">
-              PORTFOLIO SHOWCASE
-            </span>
-            <h2 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-bold text-[#241A14]">
-              Spaces Gallery: Our Furniture Collection
-            </h2>
-            <p className="text-sm sm:text-base text-stone-700 max-w-xl mx-auto">
-              Real residence and drawing room installations delivered across Islamabad, DHA, Bahria Town, and Rawalpindi.
-            </p>
-          </div>
-
-          {/* Gallery grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-            {gallery.slice(0, 3).map((item, idx) => (
-              <div 
-                key={item.id}
-                onClick={() => onNavigate('/gallery')}
-                className={`group relative rounded-3xl overflow-hidden bg-[#FFFFFF] aspect-[4/3] cursor-pointer shadow-lg border border-[#DCD3C0] hover:border-[#8C5D36] transition-luxury hover:-translate-y-1.5 scroll-reveal delay-${((idx % 3) + 1) * 100}`}
-              >
-                <SafeImage 
-                  src={item.image} 
-                  alt={item.title} 
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent flex flex-col justify-end p-6 text-white">
-                  <span className="text-xs uppercase tracking-wider text-[#DFC06A] font-semibold mb-1">
-                    {item.category || (item as any).category_name || 'Showroom'}
-                  </span>
-                  <h3 className="font-serif text-xl font-bold leading-snug">
-                    {item.title}
-                  </h3>
-                  <p className="text-xs text-stone-300 line-clamp-1 mt-1 leading-relaxed">
-                    {item.description}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="text-center pt-10 scroll-reveal">
-            <button 
-              onClick={() => onNavigate('/gallery')}
-              className="inline-flex items-center gap-2 px-8 py-3.5 bg-[#241A14] hover:bg-[#38271E] border border-[#3E2B20] text-[#FAF6F0] text-xs sm:text-sm font-semibold rounded-2xl transition-colors shadow-md hover:scale-[1.01]"
-            >
-              <span>Explore All Gallery Spaces</span>
-              <ArrowRight className="w-4 h-4 text-[#DFC06A]" />
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* 7. OUR SERVICES - SOLID ALABASTER / LIGHT WOOD TONE */}
+      {/* 4. OUR SERVICES - SOLID ALABASTER / LIGHT WOOD TONE */}
       <section className="bg-[#F7F2EA] py-20 sm:py-28 border-b border-[#EAE1D3] text-[#241A14]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto mb-14 space-y-3 scroll-reveal">
@@ -598,57 +435,6 @@ export const HomePage: React.FC<HomePageProps> = ({
                 </div>
               </div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* 8. CLIENT REVIEWS - SOLID DARK ESPRESSO PREMIUM TONE */}
-      <section className="bg-[#18110D] py-20 sm:py-28 border-b border-[#2C1E16] text-[#FAF6F0]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-14 space-y-3 scroll-reveal">
-            <span className="text-xs sm:text-sm uppercase tracking-[0.28em] text-[#C5A880] font-bold block">
-              VERIFIED TESTIMONIALS
-            </span>
-            <h2 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-bold text-[#FAF6F0]">
-              Client Reviews
-            </h2>
-            <p className="text-sm sm:text-base text-stone-300 max-w-xl mx-auto">
-              Real feedback from homeowners and commercial clients in Rawalpindi, Islamabad, Bahria Town, and DHA.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
-            {approvedReviews.slice(0, 3).map((rev, idx) => (
-              <div key={rev.id} className={`bg-[#221812] p-7 rounded-3xl border border-[#443227] flex flex-col justify-between shadow-lg scroll-reveal delay-${((idx % 3) + 1) * 100}`}>
-                <div className="space-y-3.5">
-                  <div className="flex items-center gap-1 text-[#C5A880]">
-                    {Array.from({ length: rev.rating }).map((_, i) => (
-                      <span key={i} className="text-base">★</span>
-                    ))}
-                  </div>
-                  <p className="text-sm text-stone-300 leading-relaxed italic">
-                    "{rev.review_text}"
-                  </p>
-                </div>
-
-                <div className="pt-4 border-t border-[#443227] mt-5 flex items-center justify-between text-xs text-stone-400">
-                  <div>
-                    <span className="font-bold text-[#FAF6F0] text-sm block">{rev.author_name}</span>
-                    <span>{rev.location}</span>
-                  </div>
-                  <span className="text-stone-500">{rev.created_at}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="text-center pt-8 scroll-reveal">
-            <button 
-              onClick={() => onNavigate('/reviews')}
-              className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-[#C5A880] hover:underline"
-            >
-              Read More Reviews & Submit Yours →
-            </button>
           </div>
         </div>
       </section>
@@ -740,7 +526,58 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
       </section>
 
-      {/* 11. VIP INTERIOR CONSULTATION - SOLID DEEP LUXURY CHOCOLATE */}
+      {/* 7. CLIENT REVIEWS - SECOND-LAST CONTENT POSITION */}
+      <section className="bg-[#18110D] py-20 sm:py-28 border-b border-[#2C1E16] text-[#FAF6F0]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-3xl mx-auto mb-14 space-y-3 scroll-reveal">
+            <span className="text-xs sm:text-sm uppercase tracking-[0.28em] text-[#C5A880] font-bold block">
+              VERIFIED TESTIMONIALS
+            </span>
+            <h2 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-bold text-[#FAF6F0]">
+              Client Reviews
+            </h2>
+            <p className="text-sm sm:text-base text-stone-300 max-w-xl mx-auto">
+              Real feedback from homeowners and commercial clients in Rawalpindi, Islamabad, Bahria Town, and DHA.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
+            {approvedReviews.slice(0, 3).map((rev, idx) => (
+              <div key={rev.id} className={`bg-[#221812] p-7 rounded-3xl border border-[#443227] flex flex-col justify-between shadow-lg scroll-reveal delay-${((idx % 3) + 1) * 100}`}>
+                <div className="space-y-3.5">
+                  <div className="flex items-center gap-1 text-[#C5A880]">
+                    {Array.from({ length: rev.rating }).map((_, i) => (
+                      <span key={i} className="text-base">★</span>
+                    ))}
+                  </div>
+                  <p className="text-sm text-stone-300 leading-relaxed italic">
+                    "{rev.review_text}"
+                  </p>
+                </div>
+
+                <div className="pt-4 border-t border-[#443227] mt-5 flex items-center justify-between text-xs text-stone-400">
+                  <div>
+                    <span className="font-bold text-[#FAF6F0] text-sm block">{rev.author_name}</span>
+                    <span>{rev.location}</span>
+                  </div>
+                  <span className="text-stone-500">{rev.created_at}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="text-center pt-8 scroll-reveal">
+            <button 
+              onClick={() => onNavigate('/reviews')}
+              className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-[#C5A880] hover:underline"
+            >
+              Read More Reviews & Submit Yours →
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* 8. VIP INTERIOR CONSULTATION - FINAL CONTENT SECTION BEFORE FOOTER */}
       <section className="bg-[#1C140F] py-20 sm:py-28 border-b border-[#2E2018] text-[#FAF6F0]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-4xl mx-auto p-10 sm:p-14 lg:p-16 rounded-3xl bg-[#241A14] border border-[#443227] shadow-2xl text-center space-y-6 scroll-reveal-scale">

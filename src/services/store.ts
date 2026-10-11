@@ -24,6 +24,7 @@ import {
   initialVideos
 } from '../data/initialData';
 import { supabase, isSupabaseConfigured } from './supabase';
+import { getIdb, setIdb } from './idb';
 
 const STORAGE_KEYS = {
   SETTINGS: 'woodcare_settings',
@@ -43,8 +44,25 @@ const STORAGE_KEYS = {
 };
 
 // In-memory runtime cache to guarantee that data updates and persists across UI actions
-// even if localStorage quota is tight or disabled in certain sandbox environments
+// backed by IndexedDB for unlimited, persistent cross-session storage
 const memoryCache: Record<string, unknown> = {};
+
+// Asynchronously hydrate keys from IndexedDB into memoryCache and localStorage on app load
+if (typeof window !== 'undefined') {
+  Object.values(STORAGE_KEYS).forEach((key) => {
+    getIdb(key).then((val) => {
+      if (val !== null && val !== undefined) {
+        memoryCache[key] = val;
+        try {
+          localStorage.setItem(key, JSON.stringify(val));
+        } catch {
+          // ignore quota
+        }
+        window.dispatchEvent(new CustomEvent('woodcare_store_updated', { detail: { key } }));
+      }
+    });
+  });
+}
 
 function getLocal<T>(key: string, fallback: T): T {
   if (memoryCache[key] !== undefined) {
@@ -71,9 +89,11 @@ function setLocal<T>(key: string, value: T): void {
   try {
     localStorage.setItem(key, JSON.stringify(value));
   } catch (err) {
-    // If quota exceeded, data is still safe in memoryCache
-    console.warn(`Storage quota notice for ${key}, operating from runtime memory cache.`, err);
+    // If quota exceeded in localStorage, data is still 100% saved in IndexedDB
+    console.warn(`Storage quota notice for ${key}, operating from IndexedDB.`, err);
   }
+  // Always persist in IndexedDB asynchronously
+  setIdb(key, value).catch(() => {});
   window.dispatchEvent(new CustomEvent('woodcare_store_updated', { detail: { key } }));
 }
 
@@ -99,6 +119,9 @@ export const Store = {
       hero_videos: heroVideos,
       hero_video_url: loaded.hero_video_url && !loaded.hero_video_url.includes('dQw4w9WgXcQ') ? loaded.hero_video_url : initialSettings.hero_video_url,
       hero_video_overlay: typeof loaded.hero_video_overlay === 'number' ? loaded.hero_video_overlay : (initialSettings.hero_video_overlay ?? 0.38),
+      hero_interval_seconds: typeof loaded.hero_interval_seconds === 'number' && loaded.hero_interval_seconds >= 2 && loaded.hero_interval_seconds <= 60 
+        ? loaded.hero_interval_seconds 
+        : (initialSettings.hero_interval_seconds ?? 6),
       brand_name: brandName,
       logo_url: logoUrl,
       favicon_url: loaded.favicon_url || '/wood_care_logo.svg'
@@ -120,7 +143,8 @@ export const Store = {
 
   // --- Categories ---
   getCategories(): Category[] {
-    return getLocal<Category[]>(STORAGE_KEYS.CATEGORIES, initialCategories);
+    const list = getLocal<Category[]>(STORAGE_KEYS.CATEGORIES, initialCategories);
+    return [...list].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
   },
 
   saveCategory(cat: Category): void {
@@ -137,8 +161,20 @@ export const Store = {
     }
   },
 
+  reorderCategories(orderedIds: string[]): void {
+    const current = this.getCategories();
+    const updated = current.map(cat => {
+      const idx = orderedIds.indexOf(cat.id);
+      return {
+        ...cat,
+        order_index: idx >= 0 ? idx + 1 : cat.order_index
+      };
+    }).sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
+    setLocal(STORAGE_KEYS.CATEGORIES, updated);
+  },
+
   deleteCategory(id: string): void {
-    const list = this.getCategories().filter(c => c.id !== id);
+    const list = this.getCategories().filter(c => c.id !== id && c.slug !== id);
     setLocal(STORAGE_KEYS.CATEGORIES, list);
     if (isSupabaseConfigured && supabase) {
       supabase.from('categories').delete().eq('id', id).then();
@@ -182,9 +218,25 @@ export const Store = {
     return this.getProducts().find(p => p.slug === slug || p.id === slug);
   },
 
+  getProductsByCategory(categoryIdOrSlug: string): Product[] {
+    if (!categoryIdOrSlug || categoryIdOrSlug === 'all') {
+      return this.getProducts();
+    }
+    const categories = this.getCategories();
+    const targetCat = categories.find(c => c.id === categoryIdOrSlug || c.slug === categoryIdOrSlug);
+    return this.getProducts().filter(p => {
+      if (p.category_id === categoryIdOrSlug) return true;
+      if (targetCat) {
+        return p.category_id === targetCat.id || p.category_id === targetCat.slug;
+      }
+      return false;
+    });
+  },
+
   saveProduct(prod: Product): void {
     const sanitizedProd: Product = {
       ...prod,
+      images: Array.isArray(prod.images) && prod.images.length > 0 ? prod.images : [prod.main_image],
       price: null,
       price_visible: false,
       quote_only: true
@@ -200,6 +252,22 @@ export const Store = {
     if (isSupabaseConfigured && supabase) {
       supabase.from('products').upsert([sanitizedProd]).then();
     }
+  },
+
+  reorderProducts(orderedIds: string[]): void {
+    const current = this.getProducts();
+    const idMap = new Map(current.map(p => [p.id, p]));
+    const reordered: Product[] = [];
+    orderedIds.forEach(id => {
+      const p = idMap.get(id);
+      if (p) {
+        reordered.push(p);
+        idMap.delete(id);
+      }
+    });
+    // Append remaining
+    idMap.forEach(p => reordered.push(p));
+    setLocal(STORAGE_KEYS.PRODUCTS, reordered);
   },
 
   deleteProduct(id: string): void {

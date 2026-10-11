@@ -6,10 +6,13 @@ import {
   Sparkles,
   ArrowRight,
   MessageCircle,
-  Package
+  Package,
+  LayoutGrid,
+  Columns3
 } from 'lucide-react';
 import { useStoreData } from '../hooks/useStore';
 import { ProductCard } from '../components/ProductCard';
+import { HorizontalProductCarousel } from '../components/HorizontalProductCarousel';
 import { getCategoryWhatsAppLink, getGeneralWhatsAppLink } from '../utils/whatsapp';
 
 interface FurnitureCatalogPageProps {
@@ -41,6 +44,7 @@ export const FurnitureCatalogPage: React.FC<FurnitureCatalogPageProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'featured' | 'newest' | 'name_asc'>('featured');
   const [onlyCustomizable, setOnlyCustomizable] = useState(false);
+  const [viewMode, setViewMode] = useState<'carousel' | 'grid'>('carousel');
 
   const currentSubcategories = useMemo(() => {
     if (activeCategoryId === 'all') return [];
@@ -248,14 +252,46 @@ export const FurnitureCatalogPage: React.FC<FurnitureCatalogPageProps> = ({
       <section className="bg-[#FAF7F2] py-12 sm:py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           
-          {/* Results Summary Bar */}
-          <div className="flex items-center justify-between pb-6 border-b border-[#EAE2D5] mb-8">
-            <span className="text-xs sm:text-sm text-stone-600 font-medium">
-              Showing <strong className="text-[#241A14]">{filteredProducts.length}</strong> handcrafted piece{filteredProducts.length === 1 ? '' : 's'}
-              {currentCatObj && <span> in <strong className="text-[#8C5D36]">{currentCatObj.name}</strong></span>}
-            </span>
+          {/* Results Summary Bar with View Toggle */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#EAE2D5] mb-8">
+            <div className="flex items-center gap-3">
+              <span className="text-xs sm:text-sm text-stone-600 font-medium">
+                Showing <strong className="text-[#241A14]">{filteredProducts.length}</strong> handcrafted piece{filteredProducts.length === 1 ? '' : 's'}
+                {currentCatObj && <span> in <strong className="text-[#8C5D36]">{currentCatObj.name}</strong></span>}
+              </span>
 
-            {/* Sensible WhatsApp Enquiry Action on top right of catalog */}
+              {/* View Toggle (Horizontal Carousel vs Grid) */}
+              <div className="bg-white border border-[#DDD3C2] p-0.5 rounded-xl flex items-center shadow-xs">
+                <button
+                  type="button"
+                  onClick={() => setViewMode('carousel')}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                    viewMode === 'carousel'
+                      ? 'bg-[#8C5D36] text-white shadow-xs'
+                      : 'text-stone-600 hover:text-[#241A14]'
+                  }`}
+                  title="Single-row horizontal scrolling carousel"
+                >
+                  <Columns3 className="w-3.5 h-3.5" />
+                  <span className="hidden md:inline">Horizontal Row</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('grid')}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                    viewMode === 'grid'
+                      ? 'bg-[#8C5D36] text-white shadow-xs'
+                      : 'text-stone-600 hover:text-[#241A14]'
+                  }`}
+                  title="Grid layout"
+                >
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                  <span className="hidden md:inline">Grid</span>
+                </button>
+              </div>
+            </div>
+
+            {/* WhatsApp Enquiry Action */}
             <a
               href={getCategoryWhatsAppLink(
                 settings.whatsapp, 
@@ -264,7 +300,7 @@ export const FurnitureCatalogPage: React.FC<FurnitureCatalogPageProps> = ({
               )}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-xs font-semibold text-[#8C5D36] hover:text-[#5E3C20] transition-colors"
+              className="inline-flex items-center gap-2 text-xs font-semibold text-[#8C5D36] hover:text-[#5E3C20] transition-colors self-start sm:self-auto"
             >
               <MessageCircle className="w-4 h-4 text-[#25D366]" />
               <span className="hidden sm:inline">Ask about custom sizing on WhatsApp</span>
@@ -272,7 +308,7 @@ export const FurnitureCatalogPage: React.FC<FurnitureCatalogPageProps> = ({
             </a>
           </div>
 
-          {/* Products Grid */}
+          {/* Products Render Area */}
           {filteredProducts.length === 0 ? (
             <div className="text-center py-20 bg-white border border-[#E5DCD0] rounded-3xl space-y-4 shadow-sm max-w-xl mx-auto p-8">
               <Package className="w-12 h-12 text-[#8C5D36] mx-auto opacity-70" />
@@ -302,6 +338,36 @@ export const FurnitureCatalogPage: React.FC<FurnitureCatalogPageProps> = ({
                   <span>Request Custom Piece</span>
                 </a>
               </div>
+            </div>
+          ) : viewMode === 'carousel' ? (
+            <div className="space-y-12">
+              {/* If specific category or active search, show single horizontal row */}
+              {activeCategoryId !== 'all' || searchQuery.trim() ? (
+                <HorizontalProductCarousel
+                  products={filteredProducts}
+                  onOpenProduct={onOpenProduct}
+                  title={currentCatObj ? currentCatObj.name : 'Curated Search Results'}
+                  subtitle={currentCatObj?.description}
+                />
+              ) : (
+                /* When All Furniture is selected: Display each category as its own continuous horizontal scrolling row */
+                <div className="space-y-14">
+                  {categories.filter(c => c.is_active).map(cat => {
+                    const catProds = products.filter(p => p.category_id === cat.id);
+                    if (catProds.length === 0) return null;
+                    return (
+                      <div key={cat.id} className="pt-2 border-b border-[#EAE2D5] pb-10 last:border-b-0 last:pb-0">
+                        <HorizontalProductCarousel
+                          products={catProds}
+                          onOpenProduct={onOpenProduct}
+                          title={cat.name}
+                          subtitle={cat.description}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">

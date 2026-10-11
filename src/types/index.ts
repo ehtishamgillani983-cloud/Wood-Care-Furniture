@@ -159,6 +159,7 @@ export interface SiteSettings {
   hero_images?: string[];
   hero_cta_text: string;
   hero_cta_link: string;
+  hero_interval_seconds?: number;
   footer_description: string;
   copyright_text: string;
   // SEO

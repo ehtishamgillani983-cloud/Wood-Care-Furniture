@@ -196,18 +196,6 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           <button 
-            onClick={() => navigateTo('/gallery')} 
-            className={`relative py-2 transition-colors hover:text-[#8C5D36] ${
-              isNavActive('/gallery') ? 'text-[#8C5D36] font-semibold' : ''
-            }`}
-          >
-            <span>Gallery</span>
-            {isNavActive('/gallery') && (
-              <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#8C5D36] rounded-full" />
-            )}
-          </button>
-
-          <button 
             onClick={() => navigateTo('/about')} 
             className={`relative py-2 transition-colors hover:text-[#8C5D36] ${
               isNavActive('/about') ? 'text-[#8C5D36] font-semibold' : ''
@@ -351,13 +339,6 @@ export const Header: React.FC<HeaderProps> = ({
                   </div>
                 )}
               </div>
-
-              <button 
-                onClick={() => navigateTo('/gallery')}
-                className="w-full text-left font-serif text-lg font-bold text-[#241A14] py-2.5 border-b border-[#EDE6DC]"
-              >
-                Spaces Gallery
-              </button>
 
               <button 
                 onClick={() => navigateTo('/about')}

@@ -2000,6 +2000,35 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                   </div>
                 </div>
 
+                {/* Hero Image Transition Interval (seconds) Setting */}
+                <div className="pt-4 border-t border-[#443227] space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <label className="block text-stone-200 font-medium text-xs sm:text-sm">
+                        Hero Image Transition Interval (seconds)
+                      </label>
+                      <p className="text-[11px] text-stone-400">
+                        How many seconds each hero photo/video remains visible before automatically transitioning to the next slide (default: 6s).
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="2"
+                        max="30"
+                        step="1"
+                        value={settings.hero_interval_seconds ?? 6}
+                        onChange={(e) => {
+                          const val = Math.max(2, Math.min(30, parseInt(e.target.value) || 6));
+                          updateSettings({ hero_interval_seconds: val });
+                        }}
+                        className="w-20 p-2 bg-[#15100D] border border-[#443227] rounded-xl text-center font-mono text-sm text-[#DFC06A] focus:outline-none focus:border-[#768A7D]"
+                      />
+                      <span className="text-xs text-stone-400 font-mono">sec</span>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Headlines */}
                 <div className="pt-4 border-t border-[#443227] space-y-4">
                   <div>

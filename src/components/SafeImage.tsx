@@ -52,6 +52,12 @@ export const SafeImage: React.FC<SafeImageProps> = ({
   ...props
 }) => {
   const [errorCount, setErrorCount] = useState(0);
+
+  // Reset error count immediately whenever the src prop changes
+  React.useEffect(() => {
+    setErrorCount(0);
+  }, [src]);
+
   const resolved = resolveSafeImageUrl(src);
 
   const handleError = () => {
