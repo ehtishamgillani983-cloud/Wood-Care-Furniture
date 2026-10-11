@@ -86,6 +86,27 @@ h1, h2, h3, .font-serif-display {
 .delay-400 { transition-delay: 400ms; }
 .delay-500 { transition-delay: 500ms; }
 
+/* Continuous Smooth Marquee Ribbon (Infinite Horizontal Loop) */
+@keyframes marquee-horizontal {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.animate-marquee-infinite {
+  display: flex;
+  width: max-content;
+  animation: marquee-horizontal 38s linear infinite;
+  will-change: transform;
+}
+
+.marquee-container:hover .animate-marquee-infinite {
+  animation-play-state: paused;
+}
+
 /* Reduced motion preference respect */
 @media (prefers-reduced-motion: reduce) {
   html {
@@ -97,6 +118,9 @@ h1, h2, h3, .font-serif-display {
     opacity: 1 !important;
     transform: none !important;
     transition: none !important;
+  }
+  .animate-marquee-infinite {
+    animation-play-state: paused !important;
   }
 }
 

@@ -243,7 +243,40 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
       </section>
 
-
+      {/* ANIMATED TEXT MARQUEE RIBBON (BETWEEN HERO AND FURNITURE CATEGORIES) */}
+      <div 
+        className="marquee-container relative w-full overflow-hidden bg-[#18110D] border-y border-[#382619] py-2.5 sm:py-3.5 select-none z-10 cursor-default"
+        title="Wood Care Furniture — Hover to pause"
+      >
+        <div className="animate-marquee-infinite flex items-center whitespace-nowrap">
+          {[
+            '100% Seasoned Solid Sheesham & Teak',
+            'Termite-Proof Guaranteed Woodworking',
+            'Direct Factory Workshop Rates',
+            'Master Artisan Mortise & Tenon Joinery',
+            'Custom Sizing & Bespoke Finish',
+            'Showroom & Workshop: Shamsabad, Rawalpindi',
+            'Free Measuring in Rawalpindi & Islamabad',
+            '10-Year Craftsmanship Assurance',
+            '100% Seasoned Solid Sheesham & Teak',
+            'Termite-Proof Guaranteed Woodworking',
+            'Direct Factory Workshop Rates',
+            'Master Artisan Mortise & Tenon Joinery',
+            'Custom Sizing & Bespoke Finish',
+            'Showroom & Workshop: Shamsabad, Rawalpindi',
+            'Free Measuring in Rawalpindi & Islamabad',
+            '10-Year Craftsmanship Assurance'
+          ].map((item, idx) => (
+            <div 
+              key={idx} 
+              className="inline-flex items-center gap-3 sm:gap-4 px-4 sm:px-6 text-[10px] sm:text-xs md:text-sm font-medium tracking-[0.18em] sm:tracking-[0.22em] uppercase text-[#EAD8B7]"
+            >
+              <span>{item}</span>
+              <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#DFC06A] shrink-0 opacity-80" />
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* 2. FURNITURE CATEGORIES SECTION - SOLID WARM WHITE / IVORY */}
       <section className="bg-[#FAF7F2] py-20 sm:py-28 border-b border-[#EAE2D5] text-[#241A14]">
