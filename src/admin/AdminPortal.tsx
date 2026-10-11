@@ -805,7 +805,6 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
     { id: 'hero', label: 'Homepage', icon: <Sparkles className="w-4 h-4" /> },
     { id: 'products', label: 'Products', icon: <Package className="w-4 h-4" />, count: store.products.length },
     { id: 'categories', label: 'Categories', icon: <FolderTree className="w-4 h-4" />, count: store.categories.length },
-    { id: 'gallery', label: 'Gallery', icon: <Camera className="w-4 h-4" />, count: store.gallery.length },
     { id: 'services', label: 'Services', icon: <Briefcase className="w-4 h-4" />, count: store.services.length },
     { id: 'videos', label: 'Videos', icon: <Film className="w-4 h-4" />, count: store.videos.length },
     { id: 'reviews', label: 'Reviews', icon: <Star className="w-4 h-4" />, count: store.reviews.length },
@@ -995,12 +994,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                 </div>
 
                 <div 
-                  onClick={() => setActiveTab('gallery')}
+                  onClick={() => setActiveTab('reviews')}
                   className="bg-[#221812] border border-[#443227] p-5 rounded-2xl cursor-pointer hover:border-[#768A7D] transition-all hover:-translate-y-0.5"
                 >
-                  <span className="text-[11px] uppercase tracking-wider text-stone-400 block font-semibold">Spaces Gallery</span>
-                  <span className="font-serif text-3xl font-bold text-[#FAF6F0] block mt-1">{store.gallery.length}</span>
-                  <span className="text-[11px] text-[#768A7D] flex items-center gap-1 mt-2">Manage room photos →</span>
+                  <span className="text-[11px] uppercase tracking-wider text-stone-400 block font-semibold">Client Reviews</span>
+                  <span className="font-serif text-3xl font-bold text-[#FAF6F0] block mt-1">{store.reviews.length}</span>
+                  <span className="text-[11px] text-[#768A7D] flex items-center gap-1 mt-2">Manage customer reviews →</span>
                 </div>
               </div>
 
@@ -1251,72 +1250,6 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                     </div>
                   );
                 })}
-              </div>
-            </div>
-          )}
-
-          {/* TAB 4: SPACES GALLERY */}
-          {activeTab === 'gallery' && (
-            <div className="space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <h2 className="font-serif text-3xl sm:text-4xl font-bold text-[#FAF6F0]">
-                    Spaces Gallery ({store.gallery.length})
-                  </h2>
-                  <p className="text-xs sm:text-sm text-stone-300 mt-1">
-                    Manage real showroom and interior project photographs displayed on the Gallery page.
-                  </p>
-                </div>
-
-                <button
-                  onClick={handleOpenNewGallery}
-                  className="px-4 py-2.5 bg-[#768A7D] hover:bg-[#5C7367] text-white text-xs font-semibold rounded-xl flex items-center gap-2 transition-colors shadow-md shrink-0"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Add Space Photo</span>
-                </button>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                {store.gallery.map(item => (
-                  <div key={item.id} className="bg-[#221812] border border-[#443227] rounded-2xl overflow-hidden group flex flex-col justify-between">
-                    <div className="aspect-square w-full overflow-hidden bg-[#15100D] relative">
-                      <img 
-                        src={resolveSafeImageUrl(item.image)} 
-                        alt={item.title} 
-                        onError={(e) => { (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=600&q=80'; }}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
-                      />
-                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => handleEditGallery(item)}
-                          className="p-2 bg-[#2A1D16] text-stone-200 rounded-xl hover:bg-[#38271E]"
-                          title="Edit"
-                        >
-                          <Edit3 className="w-4 h-4 text-[#C5A880]" />
-                        </button>
-
-                        <button
-                          onClick={() => {
-                            setDeleteConfirm({
-                              type: 'gallery',
-                              id: item.id,
-                              title: item.title
-                            });
-                          }}
-                          className="p-2 bg-red-900/80 text-white rounded-xl hover:bg-red-800"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                    <div className="p-3">
-                      <h4 className="font-serif text-xs font-bold text-[#FAF6F0] truncate">{item.title}</h4>
-                      <p className="text-[10px] text-[#C5A880]">{item.category_name || 'Showroom'}</p>
-                    </div>
-                  </div>
-                ))}
               </div>
             </div>
           )}

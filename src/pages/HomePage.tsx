@@ -110,9 +110,9 @@ export const HomePage: React.FC<HomePageProps> = ({
     <div className="w-full">
       
       {/* 1. CINEMATIC HERO SECTION: PROPORTIONAL MOBILE HEIGHT & TRUE FULL-BLEED SLIDESHOW */}
-      <section className="relative overflow-hidden min-h-[520px] h-[78vh] max-h-[660px] sm:max-h-none sm:min-h-[88vh] lg:min-h-[92vh] flex items-center justify-center bg-[#15100D]">
+      <section className="relative overflow-hidden h-[62vh] min-h-[420px] max-h-[520px] sm:h-[84vh] sm:min-h-[580px] sm:max-h-none lg:min-h-[90vh] flex items-center justify-center bg-[#15100D]">
         
-        {/* Full-Bleed Media Background (100% width & height, edge-to-edge, NO blur, perfectly framed on mobile) */}
+        {/* Full-Bleed Media Background (100% width & height, edge-to-edge, perfectly framed on mobile) */}
         <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none select-none z-0">
           {isDirectVideo && !videoError ? (
             <video
@@ -124,7 +124,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               preload="auto"
               poster={resolveSafeImageUrl(heroPoster)}
               onError={() => setVideoError(true)}
-              className="w-full h-full object-cover object-center transition-opacity duration-700"
+              className="w-full h-full object-cover object-[center_35%] sm:object-center transition-opacity duration-700"
             >
               <source src={currentHeroMedia} type="video/mp4" />
             </video>
@@ -133,7 +133,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               <iframe
                 src={`https://www.youtube-nocookie.com/embed/${currentYoutubeId}?autoplay=1&mute=1&loop=1&playlist=${currentYoutubeId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&iv_load_policy=3&disablekb=1`}
                 title="Wood Care Furniture Background Video"
-                className="w-[260vw] sm:w-[125vw] h-[100%] sm:h-[125vh] min-w-[100%] min-h-[100%] object-cover pointer-events-none scale-105 sm:scale-125"
+                className="w-[170%] sm:w-[125%] h-[120%] sm:h-[125%] min-w-full min-h-full object-cover pointer-events-none scale-100 sm:scale-110"
                 allow="autoplay; encrypted-media; picture-in-picture"
                 tabIndex={-1}
               />
@@ -149,7 +149,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                   target.src = 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1920&q=80';
                 }
               }}
-              className="w-full h-full object-cover object-center transition-all duration-700"
+              className="w-full h-full object-cover object-[center_35%] sm:object-center transition-all duration-700"
               loading="eager"
               fetchPriority="high"
             />
@@ -158,16 +158,16 @@ export const HomePage: React.FC<HomePageProps> = ({
           {/* Subtle adjustable overlay for text readability - sharp and vibrant */}
           <div 
             className="absolute inset-0 bg-black pointer-events-none transition-opacity duration-300"
-            style={{ opacity: Math.min(overlayOpacity, 0.48) }}
+            style={{ opacity: Math.min(overlayOpacity, 0.46) }}
           />
 
           {/* Gentle bottom scrim fade transitioning into the next solid section */}
-          <div className="absolute inset-x-0 bottom-0 h-16 sm:h-28 bg-gradient-to-t from-black/60 via-black/20 to-transparent pointer-events-none" />
+          <div className="absolute inset-x-0 bottom-0 h-14 sm:h-24 bg-gradient-to-t from-black/60 via-black/20 to-transparent pointer-events-none" />
         </div>
 
         {/* Slideshow Indicator Dots & Navigation */}
         {heroVideoList.length > 1 && (
-          <div className="absolute bottom-2.5 sm:bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 sm:gap-2 bg-black/50 backdrop-blur-md px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full border border-white/10 pointer-events-auto">
+          <div className="absolute bottom-2 sm:bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 sm:gap-2 bg-black/50 backdrop-blur-md px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full border border-white/10 pointer-events-auto">
             {heroVideoList.map((_, idx) => (
               <button
                 key={idx}
@@ -185,7 +185,7 @@ export const HomePage: React.FC<HomePageProps> = ({
         )}
 
         {/* Centered Hero Content: Compact, Elegant Headline, Badge & Action CTAs */}
-        <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-10 sm:py-24 lg:py-36 text-center flex flex-col items-center justify-center space-y-3 sm:space-y-6 md:space-y-8">
+        <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-24 lg:py-32 text-center flex flex-col items-center justify-center space-y-2.5 sm:space-y-6 md:space-y-8">
           
           {/* Subtle Location & Brand Badge */}
           <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-0.5 sm:py-2 rounded-full bg-stone-900/70 backdrop-blur-md border border-[#DFC06A]/40 text-[9px] sm:text-xs md:text-sm font-medium tracking-[0.16em] sm:tracking-[0.2em] uppercase text-[#F3E5AB] shadow-2xl">
@@ -228,7 +228,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           </div>
 
           {/* Refined Craftsmanship Promises */}
-          <div className="pt-1 sm:pt-3 flex flex-wrap items-center justify-center gap-1.5 sm:gap-4 text-stone-200 text-[9px] sm:text-xs md:text-sm tracking-wider uppercase font-medium">
+          <div className="pt-1 sm:pt-2 flex flex-wrap items-center justify-center gap-1.5 sm:gap-4 text-stone-200 text-[9px] sm:text-xs md:text-sm tracking-wider uppercase font-medium">
             <span className="inline-flex items-center gap-1 bg-black/50 backdrop-blur-sm px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-full border border-white/10 shadow-lg">
               <Sparkles className="w-3 h-3 text-[#DFC06A]" /> Seasoned Hardwoods
             </span>
@@ -240,6 +240,64 @@ export const HomePage: React.FC<HomePageProps> = ({
             </span>
           </div>
 
+        </div>
+      </section>
+
+      {/* CONTINUOUS SMOOTH ANIMATED SCROLLING MARQUEE TICKER RIBBON */}
+      <section className="bg-[#221812] border-y border-[#3E2D22] py-3 overflow-hidden select-none">
+        <div className="relative w-full flex overflow-hidden">
+          <div className="animate-marquee whitespace-nowrap flex items-center gap-8 text-xs sm:text-sm uppercase tracking-[0.22em] font-semibold text-[#E5D2B8]">
+            <span className="flex items-center gap-2">
+              <Sparkles className="w-3.5 h-3.5 text-[#DFC06A]" /> 100% Kiln-Seasoned Hardwoods · Termite-Proof Assurance
+            </span>
+            <span className="text-[#DFC06A]">✦</span>
+            <span className="flex items-center gap-2">
+              <Sparkles className="w-3.5 h-3.5 text-[#DFC06A]" /> Master Wood Joinery & Ergonomic Luxury
+            </span>
+            <span className="text-[#DFC06A]">✦</span>
+            <span className="flex items-center gap-2">
+              <Sparkles className="w-3.5 h-3.5 text-[#DFC06A]" /> Bespoke Custom Sizing & Premium Molty Foam
+            </span>
+            <span className="text-[#DFC06A]">✦</span>
+            <span className="flex items-center gap-2">
+              <Sparkles className="w-3.5 h-3.5 text-[#DFC06A]" /> Direct Factory Wholesale Advantage — Shamsabad Rawalpindi
+            </span>
+            <span className="text-[#DFC06A]">✦</span>
+            <span className="flex items-center gap-2">
+              <Sparkles className="w-3.5 h-3.5 text-[#DFC06A]" /> Rawalpindi & Islamabad Home Delivery
+            </span>
+            <span className="text-[#DFC06A]">✦</span>
+            <span className="flex items-center gap-2">
+              <Sparkles className="w-3.5 h-3.5 text-[#DFC06A]" /> Direct Workshop WhatsApp Consultation
+            </span>
+            <span className="text-[#DFC06A]">✦</span>
+
+            {/* Repeating block for seamless continuous loop */}
+            <span className="flex items-center gap-2">
+              <Sparkles className="w-3.5 h-3.5 text-[#DFC06A]" /> 100% Kiln-Seasoned Hardwoods · Termite-Proof Assurance
+            </span>
+            <span className="text-[#DFC06A]">✦</span>
+            <span className="flex items-center gap-2">
+              <Sparkles className="w-3.5 h-3.5 text-[#DFC06A]" /> Master Wood Joinery & Ergonomic Luxury
+            </span>
+            <span className="text-[#DFC06A]">✦</span>
+            <span className="flex items-center gap-2">
+              <Sparkles className="w-3.5 h-3.5 text-[#DFC06A]" /> Bespoke Custom Sizing & Premium Molty Foam
+            </span>
+            <span className="text-[#DFC06A]">✦</span>
+            <span className="flex items-center gap-2">
+              <Sparkles className="w-3.5 h-3.5 text-[#DFC06A]" /> Direct Factory Wholesale Advantage — Shamsabad Rawalpindi
+            </span>
+            <span className="text-[#DFC06A]">✦</span>
+            <span className="flex items-center gap-2">
+              <Sparkles className="w-3.5 h-3.5 text-[#DFC06A]" /> Rawalpindi & Islamabad Home Delivery
+            </span>
+            <span className="text-[#DFC06A]">✦</span>
+            <span className="flex items-center gap-2">
+              <Sparkles className="w-3.5 h-3.5 text-[#DFC06A]" /> Direct Workshop WhatsApp Consultation
+            </span>
+            <span className="text-[#DFC06A]">✦</span>
+          </div>
         </div>
       </section>
 
