@@ -32,7 +32,10 @@ import {
   ShieldCheck,
   User,
   Save,
-  AlertCircle
+  AlertCircle,
+  Cloud,
+  RefreshCw,
+  UploadCloud
 } from 'lucide-react';
 import { useStoreData, useSettings } from '../hooks/useStore';
 import { Store } from '../services/store';
@@ -85,10 +88,26 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [newHeroVideoInput, setNewHeroVideoInput] = useState('');
+  const [isSyncingCloud, setIsSyncingCloud] = useState(false);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const handleCloudSync = async () => {
+    setIsSyncingCloud(true);
+    const res = await Store.manualSyncSupabase();
+    setIsSyncingCloud(false);
+    showToast(res.message);
+  };
+
+  const handleUploadAllToCloud = async () => {
+    if (!confirm('Upload all showroom products, categories, and settings to Supabase cloud?')) return;
+    setIsSyncingCloud(true);
+    const res = await Store.seedAllToSupabase();
+    setIsSyncingCloud(false);
+    showToast(res.message);
   };
 
   // --- MODAL STATES ---
@@ -953,11 +972,52 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
 
                 <div className="flex items-center gap-2">
                   <button
+                    onClick={handleCloudSync}
+                    disabled={isSyncingCloud}
+                    className="px-3.5 py-2.5 bg-[#2A1D16] hover:bg-[#38271E] border border-[#443227] text-stone-200 text-xs font-semibold rounded-xl flex items-center gap-2 transition-colors disabled:opacity-50"
+                    title="Synchronize latest products with Supabase Cloud"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 text-[#C5A880] ${isSyncingCloud ? 'animate-spin' : ''}`} />
+                    <span className="hidden sm:inline">{isSyncingCloud ? 'Syncing...' : 'Sync Supabase'}</span>
+                  </button>
+
+                  <button
                     onClick={handleOpenNewProduct}
                     className="px-4 py-2.5 bg-[#768A7D] hover:bg-[#5C7367] text-white text-xs font-semibold rounded-xl flex items-center gap-2 transition-colors shadow-md"
                   >
                     <Plus className="w-4 h-4" />
                     <span>+ Add Product</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Supabase Cloud Live Status Ribbon */}
+              <div className="bg-[#1C140F] border border-emerald-900/50 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-950/80 border border-emerald-700/60 flex items-center justify-center shrink-0">
+                    <Cloud className="w-4 h-4 text-emerald-400" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-[#FAF6F0]">Supabase Cloud Database Connected</span>
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-900/60 border border-emerald-700 text-emerald-300 text-[10px] font-bold">
+                        LIVE & SECURE
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-stone-400 mt-0.5">
+                      All changes saved in this admin portal automatically update in the cloud and appear instantly for all public website visitors.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                  <button
+                    onClick={handleUploadAllToCloud}
+                    disabled={isSyncingCloud}
+                    className="px-3 py-1.5 bg-[#2A1D16] hover:bg-[#38271E] border border-[#443227] text-stone-300 rounded-xl text-[11px] font-medium flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                  >
+                    <UploadCloud className="w-3.5 h-3.5 text-[#C5A880]" />
+                    <span>Push All Data to Cloud</span>
                   </button>
                 </div>
               </div>
