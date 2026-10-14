@@ -87,12 +87,14 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
   // Active Admin Tab
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastType, setToastType] = useState<'success' | 'error'>('success');
   const [newHeroVideoInput, setNewHeroVideoInput] = useState('');
   const [isSyncingCloud, setIsSyncingCloud] = useState(false);
 
-  const showToast = (msg: string) => {
+  const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
+    setToastType(type);
+    setTimeout(() => setToastMessage(null), 3500);
   };
 
   const handleCloudSync = async () => {
@@ -358,10 +360,10 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
     setIsProductModalOpen(true);
   };
 
-  const handleSaveProduct = (e: React.FormEvent) => {
+  const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!prodForm.name.trim()) {
-      showToast('Please enter a product name');
+      showToast('Please enter a product name', 'error');
       return;
     }
 
@@ -386,8 +388,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
         price_visible: false,
         quote_only: true
       };
-      Store.saveProduct(updated);
-      showToast(`Updated "${updated.name}"`);
+      const res = await Store.saveProduct(updated);
+      if (res.success) {
+        showToast(`Saved "${updated.name}" to Supabase cloud!`, 'success');
+      } else {
+        showToast(`Saved locally only. Cloud sync error: ${res.error}`, 'error');
+      }
     } else {
       const slug = prodForm.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now().toString().slice(-4);
       const newProd: Product = {
@@ -412,8 +418,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
         price_visible: false,
         quote_only: true
       };
-      Store.saveProduct(newProd);
-      showToast(`Added new product "${newProd.name}"`);
+      const res = await Store.saveProduct(newProd);
+      if (res.success) {
+        showToast(`Added product "${newProd.name}" to Supabase cloud!`, 'success');
+      } else {
+        showToast(`Added locally only. Cloud sync error: ${res.error}`, 'error');
+      }
     }
     setIsProductModalOpen(false);
     setEditingProduct(null);
@@ -443,7 +453,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
     setIsCategoryModalOpen(true);
   };
 
-  const handleSaveCategory = (e: React.FormEvent) => {
+  const handleSaveCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!catForm.name.trim()) return;
 
@@ -456,8 +466,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
         is_active: catForm.is_active,
         is_featured: catForm.is_featured
       };
-      Store.saveCategory(updated);
-      showToast(`Updated category "${updated.name}"`);
+      const res = await Store.saveCategory(updated);
+      if (res.success) {
+        showToast(`Updated category "${updated.name}" in Supabase cloud!`, 'success');
+      } else {
+        showToast(`Updated locally only. Cloud sync error: ${res.error}`, 'error');
+      }
     } else {
       const slug = catForm.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
       const newCat: Category = {
@@ -470,8 +484,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
         is_active: true,
         is_featured: true
       };
-      Store.saveCategory(newCat);
-      showToast(`Created category "${newCat.name}"`);
+      const res = await Store.saveCategory(newCat);
+      if (res.success) {
+        showToast(`Created category "${newCat.name}" in Supabase cloud!`, 'success');
+      } else {
+        showToast(`Created locally only. Cloud sync error: ${res.error}`, 'error');
+      }
     }
     setIsCategoryModalOpen(false);
     setEditingCategory(null);
@@ -696,36 +714,48 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
   };
 
   // Perform Delete
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (!deleteConfirm) return;
     const { type, id } = deleteConfirm;
 
     if (type === 'product') {
-      Store.deleteProduct(id);
-      showToast('Product deleted');
+      const res = await Store.deleteProduct(id);
+      if (res.success) {
+        showToast('Product removed from database', 'success');
+      } else {
+        showToast(`Product removed locally. Cloud sync: ${res.error}`, 'error');
+      }
     } else if (type === 'category') {
-      Store.deleteCategory(id);
-      showToast('Category deleted');
+      const res = await Store.deleteCategory(id);
+      if (res.success) {
+        showToast('Category removed from database', 'success');
+      } else {
+        showToast(`Category removed locally. Cloud sync: ${res.error}`, 'error');
+      }
     } else if (type === 'gallery') {
-      Store.deleteGalleryItem(id);
+      await Store.deleteGalleryItem(id);
       showToast('Gallery image removed');
     } else if (type === 'service') {
-      Store.deleteService(id);
+      await Store.deleteService(id);
       showToast('Service removed');
     } else if (type === 'blog') {
-      Store.deleteBlogPost(id);
+      await Store.deleteBlogPost(id);
       showToast('Article removed');
     } else if (type === 'faq') {
-      Store.deleteFAQ(id);
+      await Store.deleteFAQ(id);
       showToast('Question removed');
     } else if (type === 'media') {
-      Store.deleteMedia(id);
+      await Store.deleteMedia(id);
       showToast('Media file removed');
     } else if (type === 'lead') {
-      Store.deleteLead(id);
-      showToast('Inquiry removed');
+      const res = await Store.deleteLead(id);
+      if (res.success) {
+        showToast('Inquiry removed from database', 'success');
+      } else {
+        showToast(`Inquiry removed locally. Cloud: ${res.error}`, 'error');
+      }
     } else if (type === 'review') {
-      Store.deleteReview(id);
+      await Store.deleteReview(id);
       showToast('Review removed');
     } else if (type === 'video') {
       Store.deleteVideo(id);
@@ -840,8 +870,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
     <div className="min-h-screen bg-[#15100D] text-[#FAF6F0] flex flex-col">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-[#768A7D] text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2 text-xs sm:text-sm font-semibold animate-in slide-in-from-bottom duration-200">
-          <Check className="w-4 h-4" />
+        <div className={`fixed bottom-6 right-6 z-50 px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2 text-xs sm:text-sm font-semibold animate-in slide-in-from-bottom duration-200 border ${
+          toastType === 'error' 
+            ? 'bg-red-900/90 border-red-500 text-red-100' 
+            : 'bg-[#768A7D] border-[#8da595] text-white'
+        }`}>
+          {toastType === 'error' ? <AlertCircle className="w-4 h-4 text-red-300" /> : <Check className="w-4 h-4" />}
           <span>{toastMessage}</span>
         </div>
       )}
@@ -2224,9 +2258,13 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                 <div className="pt-4 border-t border-[#443227] flex justify-end">
                   <button
                     type="button"
-                    onClick={() => {
-                      Store.updateSettings(settings);
-                      showToast('Business information saved successfully!');
+                    onClick={async () => {
+                      const res = await Store.updateSettings(settings);
+                      if (res.success) {
+                        showToast('Business information saved to Supabase cloud!', 'success');
+                      } else {
+                        showToast(`Saved locally only. Cloud sync error: ${res.error}`, 'error');
+                      }
                     }}
                     className="inline-flex items-center gap-2 px-6 py-3 bg-[#768A7D] hover:bg-[#5C7367] text-white rounded-xl font-semibold shadow-md"
                   >
@@ -2302,9 +2340,13 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                 <div className="pt-4 border-t border-[#443227] flex justify-end">
                   <button
                     type="button"
-                    onClick={() => {
-                      Store.updateSettings(settings);
-                      showToast('SEO settings saved successfully!');
+                    onClick={async () => {
+                      const res = await Store.updateSettings(settings);
+                      if (res.success) {
+                        showToast('SEO configuration saved to Supabase cloud!', 'success');
+                      } else {
+                        showToast(`Saved locally only. Cloud sync error: ${res.error}`, 'error');
+                      }
                     }}
                     className="inline-flex items-center gap-2 px-6 py-3 bg-[#768A7D] hover:bg-[#5C7367] text-white rounded-xl font-semibold shadow-md"
                   >
@@ -2479,9 +2521,13 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                   </h3>
                   <button
                     type="button"
-                    onClick={() => {
-                      Store.updateSettings(settings);
-                      showToast('All settings and catalog changes saved!');
+                    onClick={async () => {
+                      const res = await Store.updateSettings(settings);
+                      if (res.success) {
+                        showToast('All showroom settings saved to Supabase cloud!', 'success');
+                      } else {
+                        showToast(`Saved locally only. Cloud sync error: ${res.error}`, 'error');
+                      }
                     }}
                     className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#768A7D] hover:bg-[#5C7367] text-white rounded-xl font-semibold shadow-md"
                   >
@@ -2540,9 +2586,13 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
 
                     <div className="flex items-center gap-2 shrink-0">
                       <button
-                        onClick={() => {
-                          Store.updateReview({ ...rev, is_approved: !rev.is_approved });
-                          showToast(rev.is_approved ? 'Unpublished review' : 'Approved review!');
+                        onClick={async () => {
+                          const res = await Store.updateReview({ ...rev, is_approved: !rev.is_approved });
+                          if (res.success) {
+                            showToast(rev.is_approved ? 'Unpublished review' : 'Approved review!', 'success');
+                          } else {
+                            showToast(`Updated locally only: ${res.error}`, 'error');
+                          }
                         }}
                         className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold ${
                           rev.is_approved ? 'bg-[#2A1D16] text-stone-300 border border-[#443227]' : 'bg-[#768A7D] text-white'

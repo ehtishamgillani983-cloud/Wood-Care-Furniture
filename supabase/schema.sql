@@ -1,14 +1,47 @@
 -- ====================================================================
--- WOOD CARE FURNITURE - SUPABASE PRODUCTION DATABASE SCHEMA
+-- WOOD CARE FURNITURE - SUPABASE PRODUCTION DATABASE SCHEMA & RLS MIGRATION
 -- Target Database: PostgreSQL / Supabase
+-- Target Project ID: qhqahlykekweryenrnli
 -- ====================================================================
 
--- Enable UUID extension
+-- 1. Enable UUID Extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- 1. Site Settings & Branding
-CREATE TABLE IF NOT EXISTS site_settings (
+-- 2. Admin Users Allowlist / Role Table
+-- Securely defines authorized administrators without hardcoding credentials in client code.
+CREATE TABLE IF NOT EXISTS admin_users (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  email TEXT UNIQUE NOT NULL,
+  role TEXT NOT NULL DEFAULT 'admin' CHECK (role IN ('admin', 'super_admin')),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE admin_users ENABLE ROW LEVEL SECURITY;
+
+-- Security helper function: returns true if the current executing session belongs to an authorized admin
+CREATE OR REPLACE FUNCTION is_admin()
+RETURNS BOOLEAN
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+STABLE
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM admin_users
+    WHERE user_id = auth.uid() OR lower(email) = lower(auth.jwt() ->> 'email')
+  );
+$$;
+
+-- Authenticated admins can view their own record in admin_users
+DROP POLICY IF EXISTS "Admin view own profile" ON admin_users;
+CREATE POLICY "Admin view own profile" ON admin_users
+  FOR SELECT TO authenticated
+  USING (is_admin());
+
+-- 3. Site Settings & Branding
+CREATE TABLE IF NOT EXISTS site_settings (
+  id UUID PRIMARY KEY DEFAULT '00000000-0000-0000-0000-000000000001'::UUID,
   brand_name TEXT NOT NULL DEFAULT 'Wood Care Furniture',
   tagline TEXT DEFAULT 'Premium Furniture Manufacturer & Wholesaler',
   logo_url TEXT DEFAULT '',
@@ -25,8 +58,13 @@ CREATE TABLE IF NOT EXISTS site_settings (
   hero_heading TEXT DEFAULT 'Furniture Designed for Beautiful Living',
   hero_subheading TEXT DEFAULT 'Thoughtfully crafted solid wood furniture for homes, offices, and signature spaces in Rawalpindi & Islamabad.',
   hero_media_url TEXT DEFAULT '',
+  hero_video_url TEXT DEFAULT '',
+  hero_video_overlay NUMERIC(3, 2) DEFAULT 0.38,
+  hero_videos TEXT[] DEFAULT '{}',
+  hero_images TEXT[] DEFAULT '{}',
   hero_cta_text TEXT DEFAULT 'Explore Furniture',
   hero_cta_link TEXT DEFAULT '/furniture',
+  hero_interval_seconds INTEGER DEFAULT 6,
   footer_description TEXT DEFAULT 'Wood Care Furniture is a premier solid wood furniture manufacturer and wholesaler in Shamsabad, Rawalpindi.',
   copyright_text TEXT DEFAULT '© 2026 Wood Care Furniture. All rights reserved.',
   seo_title TEXT DEFAULT 'Wood Care Furniture | Luxury Solid Wood Furniture in Rawalpindi & Islamabad',
@@ -35,7 +73,27 @@ CREATE TABLE IF NOT EXISTS site_settings (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 2. Categories Table
+-- Ensure all dynamic hero & interval columns exist if table was already created earlier
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'site_settings' AND column_name = 'hero_video_url') THEN
+    ALTER TABLE site_settings ADD COLUMN hero_video_url TEXT DEFAULT '';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'site_settings' AND column_name = 'hero_video_overlay') THEN
+    ALTER TABLE site_settings ADD COLUMN hero_video_overlay NUMERIC(3, 2) DEFAULT 0.38;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'site_settings' AND column_name = 'hero_videos') THEN
+    ALTER TABLE site_settings ADD COLUMN hero_videos TEXT[] DEFAULT '{}';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'site_settings' AND column_name = 'hero_images') THEN
+    ALTER TABLE site_settings ADD COLUMN hero_images TEXT[] DEFAULT '{}';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'site_settings' AND column_name = 'hero_interval_seconds') THEN
+    ALTER TABLE site_settings ADD COLUMN hero_interval_seconds INTEGER DEFAULT 6;
+  END IF;
+END $$;
+
+-- 4. Categories Table
 CREATE TABLE IF NOT EXISTS categories (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
@@ -50,7 +108,7 @@ CREATE TABLE IF NOT EXISTS categories (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 3. Subcategories Table
+-- 5. Subcategories Table
 CREATE TABLE IF NOT EXISTS subcategories (
   id TEXT PRIMARY KEY,
   category_id TEXT REFERENCES categories(id) ON DELETE CASCADE,
@@ -61,7 +119,7 @@ CREATE TABLE IF NOT EXISTS subcategories (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 4. Products Table
+-- 6. Products Table
 CREATE TABLE IF NOT EXISTS products (
   id TEXT PRIMARY KEY DEFAULT uuid_generate_v4()::TEXT,
   name TEXT NOT NULL,
@@ -90,7 +148,7 @@ CREATE TABLE IF NOT EXISTS products (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 5. Gallery Items
+-- 7. Gallery Items
 CREATE TABLE IF NOT EXISTS gallery (
   id TEXT PRIMARY KEY DEFAULT uuid_generate_v4()::TEXT,
   title TEXT NOT NULL,
@@ -104,20 +162,21 @@ CREATE TABLE IF NOT EXISTS gallery (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 6. Services
+-- 8. Services
 CREATE TABLE IF NOT EXISTS services (
   id TEXT PRIMARY KEY DEFAULT uuid_generate_v4()::TEXT,
   title TEXT NOT NULL,
   slug TEXT UNIQUE NOT NULL,
   description TEXT NOT NULL,
-  image TEXT NOT NULL,
+  short_description TEXT,
+  image TEXT DEFAULT '',
   order_index INTEGER DEFAULT 0,
   is_active BOOLEAN DEFAULT TRUE,
   details TEXT[] DEFAULT '{}',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 7. Reviews
+-- 9. Reviews
 CREATE TABLE IF NOT EXISTS reviews (
   id TEXT PRIMARY KEY DEFAULT uuid_generate_v4()::TEXT,
   author_name TEXT NOT NULL,
@@ -130,7 +189,7 @@ CREATE TABLE IF NOT EXISTS reviews (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 8. Blog Posts
+-- 10. Blog Posts
 CREATE TABLE IF NOT EXISTS blog_posts (
   id TEXT PRIMARY KEY DEFAULT uuid_generate_v4()::TEXT,
   title TEXT NOT NULL,
@@ -148,7 +207,7 @@ CREATE TABLE IF NOT EXISTS blog_posts (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 9. FAQs
+-- 11. FAQs
 CREATE TABLE IF NOT EXISTS faqs (
   id TEXT PRIMARY KEY DEFAULT uuid_generate_v4()::TEXT,
   question TEXT NOT NULL,
@@ -159,7 +218,7 @@ CREATE TABLE IF NOT EXISTS faqs (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 10. Leads / Inquiries
+-- 12. Contact Messages & Leads
 CREATE TABLE IF NOT EXISTS contact_messages (
   id TEXT PRIMARY KEY DEFAULT uuid_generate_v4()::TEXT,
   name TEXT NOT NULL,
@@ -173,7 +232,10 @@ CREATE TABLE IF NOT EXISTS contact_messages (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 11. Media Library
+-- Make sure default ID generator is set for contact_messages if table already existed without default
+ALTER TABLE contact_messages ALTER COLUMN id SET DEFAULT uuid_generate_v4()::TEXT;
+
+-- 13. Media Items
 CREATE TABLE IF NOT EXISTS media_items (
   id TEXT PRIMARY KEY DEFAULT uuid_generate_v4()::TEXT,
   file_name TEXT NOT NULL,
@@ -183,9 +245,10 @@ CREATE TABLE IF NOT EXISTS media_items (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- --------------------------------------------------------------------
+-- ====================================================================
 -- ROW LEVEL SECURITY (RLS) POLICIES
--- --------------------------------------------------------------------
+-- ====================================================================
+
 ALTER TABLE site_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE subcategories ENABLE ROW LEVEL SECURITY;
@@ -198,30 +261,154 @@ ALTER TABLE faqs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE contact_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE media_items ENABLE ROW LEVEL SECURITY;
 
--- Public READ policies for active / approved content
-CREATE POLICY "Public can view settings" ON site_settings FOR SELECT USING (true);
-CREATE POLICY "Public can view active categories" ON categories FOR SELECT USING (is_active = true);
-CREATE POLICY "Public can view active subcategories" ON subcategories FOR SELECT USING (is_active = true);
-CREATE POLICY "Public can view products" ON products FOR SELECT USING (true);
-CREATE POLICY "Public can view active gallery items" ON gallery FOR SELECT USING (is_active = true);
-CREATE POLICY "Public can view active services" ON services FOR SELECT USING (is_active = true);
-CREATE POLICY "Public can view approved reviews" ON reviews FOR SELECT USING (is_approved = true);
-CREATE POLICY "Public can view published blog posts" ON blog_posts FOR SELECT USING (is_published = true);
-CREATE POLICY "Public can view active faqs" ON faqs FOR SELECT USING (is_active = true);
+-- Drop obsolete or permissive legacy policies
+DROP POLICY IF EXISTS "Public can view settings" ON site_settings;
+DROP POLICY IF EXISTS "Admin full access settings" ON site_settings;
+DROP POLICY IF EXISTS "Public can view active categories" ON categories;
+DROP POLICY IF EXISTS "Admin full access categories" ON categories;
+DROP POLICY IF EXISTS "Public can view active subcategories" ON subcategories;
+DROP POLICY IF EXISTS "Admin full access subcategories" ON subcategories;
+DROP POLICY IF EXISTS "Public can view products" ON products;
+DROP POLICY IF EXISTS "Admin full access products" ON products;
+DROP POLICY IF EXISTS "Public can view active gallery items" ON gallery;
+DROP POLICY IF EXISTS "Admin full access gallery" ON gallery;
+DROP POLICY IF EXISTS "Public can view active services" ON services;
+DROP POLICY IF EXISTS "Admin full access services" ON services;
+DROP POLICY IF EXISTS "Public can view approved reviews" ON reviews;
+DROP POLICY IF EXISTS "Public can submit customer review" ON reviews;
+DROP POLICY IF EXISTS "Admin full access reviews" ON reviews;
+DROP POLICY IF EXISTS "Public can view published blog posts" ON blog_posts;
+DROP POLICY IF EXISTS "Admin full access blog_posts" ON blog_posts;
+DROP POLICY IF EXISTS "Public can view active faqs" ON faqs;
+DROP POLICY IF EXISTS "Admin full access faqs" ON faqs;
+DROP POLICY IF EXISTS "Public can submit contact messages" ON contact_messages;
+DROP POLICY IF EXISTS "Admin full access contact_messages" ON contact_messages;
+DROP POLICY IF EXISTS "Public can view contact messages" ON contact_messages;
+DROP POLICY IF EXISTS "Admin full access media_items" ON media_items;
 
--- Public INSERT policies for leads & reviews
-CREATE POLICY "Public can submit contact messages" ON contact_messages FOR INSERT WITH CHECK (true);
-CREATE POLICY "Public can submit customer review" ON reviews FOR INSERT WITH CHECK (true);
+-- --------------------------------------------------
+-- A. PUBLIC READ POLICIES (Showroom Visitors)
+-- --------------------------------------------------
+-- Visitors can read public site settings
+CREATE POLICY "Public can view settings" ON site_settings
+  FOR SELECT TO public
+  USING (true);
 
--- Authenticated Admin full CRUD
-CREATE POLICY "Admin full access settings" ON site_settings FOR ALL TO authenticated USING (true);
-CREATE POLICY "Admin full access categories" ON categories FOR ALL TO authenticated USING (true);
-CREATE POLICY "Admin full access subcategories" ON subcategories FOR ALL TO authenticated USING (true);
-CREATE POLICY "Admin full access products" ON products FOR ALL TO authenticated USING (true);
-CREATE POLICY "Admin full access gallery" ON gallery FOR ALL TO authenticated USING (true);
-CREATE POLICY "Admin full access services" ON services FOR ALL TO authenticated USING (true);
-CREATE POLICY "Admin full access reviews" ON reviews FOR ALL TO authenticated USING (true);
-CREATE POLICY "Admin full access blog_posts" ON blog_posts FOR ALL TO authenticated USING (true);
-CREATE POLICY "Admin full access faqs" ON faqs FOR ALL TO authenticated USING (true);
-CREATE POLICY "Admin full access contact_messages" ON contact_messages FOR ALL TO authenticated USING (true);
-CREATE POLICY "Admin full access media_items" ON media_items FOR ALL TO authenticated USING (true);
+-- Visitors can read active categories & subcategories
+CREATE POLICY "Public can view active categories" ON categories
+  FOR SELECT TO public
+  USING (is_active = true OR is_admin());
+
+CREATE POLICY "Public can view active subcategories" ON subcategories
+  FOR SELECT TO public
+  USING (is_active = true OR is_admin());
+
+-- Visitors can view products
+CREATE POLICY "Public can view products" ON products
+  FOR SELECT TO public
+  USING (true);
+
+-- Visitors can view active gallery items
+CREATE POLICY "Public can view active gallery items" ON gallery
+  FOR SELECT TO public
+  USING (is_active = true OR is_admin());
+
+-- Visitors can view active services
+CREATE POLICY "Public can view active services" ON services
+  FOR SELECT TO public
+  USING (is_active = true OR is_admin());
+
+-- Visitors can view published blog posts
+CREATE POLICY "Public can view published blog posts" ON blog_posts
+  FOR SELECT TO public
+  USING (is_published = true OR is_admin());
+
+-- Visitors can view active faqs
+CREATE POLICY "Public can view active faqs" ON faqs
+  FOR SELECT TO public
+  USING (is_active = true OR is_admin());
+
+-- Visitors can ONLY view approved reviews
+CREATE POLICY "Public can view approved reviews" ON reviews
+  FOR SELECT TO public
+  USING (is_approved = true OR is_admin());
+
+-- --------------------------------------------------
+-- B. PUBLIC SUBMISSION POLICIES (Leads & Reviews)
+-- --------------------------------------------------
+-- Visitors can submit quote requests / inquiries (INSERT ONLY, NO SELECT OR DELETE)
+CREATE POLICY "Public can submit contact messages" ON contact_messages
+  FOR INSERT TO public
+  WITH CHECK (true);
+
+-- Visitors can submit new reviews (unapproved by default)
+CREATE POLICY "Public can submit customer review" ON reviews
+  FOR INSERT TO public
+  WITH CHECK (is_approved = false);
+
+-- --------------------------------------------------
+-- C. AUTHORIZED ADMIN CRUD POLICIES
+-- Verified by is_admin() function (matches admin_users allowlist)
+-- --------------------------------------------------
+CREATE POLICY "Admin write settings" ON site_settings
+  FOR ALL TO authenticated
+  USING (is_admin())
+  WITH CHECK (is_admin());
+
+CREATE POLICY "Admin manage categories" ON categories
+  FOR ALL TO authenticated
+  USING (is_admin())
+  WITH CHECK (is_admin());
+
+CREATE POLICY "Admin manage subcategories" ON subcategories
+  FOR ALL TO authenticated
+  USING (is_admin())
+  WITH CHECK (is_admin());
+
+CREATE POLICY "Admin manage products" ON products
+  FOR ALL TO authenticated
+  USING (is_admin())
+  WITH CHECK (is_admin());
+
+CREATE POLICY "Admin manage gallery" ON gallery
+  FOR ALL TO authenticated
+  USING (is_admin())
+  WITH CHECK (is_admin());
+
+CREATE POLICY "Admin manage services" ON services
+  FOR ALL TO authenticated
+  USING (is_admin())
+  WITH CHECK (is_admin());
+
+CREATE POLICY "Admin manage reviews" ON reviews
+  FOR ALL TO authenticated
+  USING (is_admin())
+  WITH CHECK (is_admin());
+
+CREATE POLICY "Admin manage blog_posts" ON blog_posts
+  FOR ALL TO authenticated
+  USING (is_admin())
+  WITH CHECK (is_admin());
+
+CREATE POLICY "Admin manage faqs" ON faqs
+  FOR ALL TO authenticated
+  USING (is_admin())
+  WITH CHECK (is_admin());
+
+CREATE POLICY "Admin manage contact_messages" ON contact_messages
+  FOR ALL TO authenticated
+  USING (is_admin())
+  WITH CHECK (is_admin());
+
+CREATE POLICY "Admin manage media_items" ON media_items
+  FOR ALL TO authenticated
+  USING (is_admin())
+  WITH CHECK (is_admin());
+
+-- --------------------------------------------------
+-- D. Initial Admin User Seeding Helper
+-- Seed the showroom owner email into admin_users allowlist
+-- --------------------------------------------------
+INSERT INTO admin_users (email, role)
+VALUES ('imranshah1984@gmail.com', 'super_admin')
+ON CONFLICT (email) DO NOTHING;

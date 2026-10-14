@@ -48,7 +48,6 @@ const STORAGE_KEYS = {
 const SETTINGS_ROW_ID = '00000000-0000-0000-0000-000000000001';
 
 // In-memory runtime cache to guarantee that data updates and persists across UI actions
-// backed by IndexedDB for unlimited, persistent cross-session storage
 const memoryCache: Record<string, unknown> = {};
 
 // Asynchronously hydrate keys from IndexedDB into memoryCache and localStorage on app load
@@ -75,7 +74,7 @@ if (typeof window !== 'undefined') {
   }
 }
 
-async function syncRemoteFromSupabase() {
+async function syncRemoteFromSupabase(): Promise<void> {
   if (!isSupabaseConfigured || !supabase) return;
 
   try {
@@ -89,22 +88,12 @@ async function syncRemoteFromSupabase() {
         ...remoteSet
       };
       setLocal(STORAGE_KEYS.SETTINGS, merged);
-    } else {
-      // Seed initial settings into Supabase if table is empty
-      const cur = Store.getSettings();
-      await supabase.from('site_settings').upsert([{ ...cur, id: SETTINGS_ROW_ID }]);
     }
 
     // 2. Fetch categories
     const { data: catData } = await supabase.from('categories').select('*').order('order_index', { ascending: true });
     if (catData && catData.length > 0) {
       setLocal(STORAGE_KEYS.CATEGORIES, catData as Category[]);
-    } else {
-      // Seed default categories if table is empty
-      const initialCats = Store.getCategories();
-      if (initialCats.length > 0) {
-        await supabase.from('categories').upsert(initialCats);
-      }
     }
 
     // 3. Fetch products
@@ -120,42 +109,58 @@ async function syncRemoteFromSupabase() {
         quote_only: true
       }));
       setLocal(STORAGE_KEYS.PRODUCTS, sanitized);
-    } else {
-      // Seed initial products if table is empty
-      const initialProds = Store.getProducts();
-      if (initialProds.length > 0) {
-        await supabase.from('products').upsert(initialProds);
-      }
     }
 
     // 4. Fetch services
-    const { data: srvData } = await supabase.from('services').select('*').order('order_index', { ascending: true });
-    if (srvData && srvData.length > 0) {
-      setLocal(STORAGE_KEYS.SERVICES, srvData as Service[]);
+    try {
+      const { data: srvData } = await supabase.from('services').select('*').order('order_index', { ascending: true });
+      if (srvData && srvData.length > 0) {
+        setLocal(STORAGE_KEYS.SERVICES, srvData as Service[]);
+      }
+    } catch {
+      // Table may be pending creation in migration
     }
 
     // 5. Fetch reviews
-    const { data: revData } = await supabase.from('reviews').select('*');
-    if (revData && revData.length > 0) {
-      setLocal(STORAGE_KEYS.REVIEWS, revData as Review[]);
+    try {
+      const { data: revData } = await supabase.from('reviews').select('*');
+      if (revData && revData.length > 0) {
+        setLocal(STORAGE_KEYS.REVIEWS, revData as Review[]);
+      }
+    } catch {
+      // Table may be pending creation in migration
     }
 
     // 6. Fetch blog posts
-    const { data: blogData } = await supabase.from('blog_posts').select('*');
-    if (blogData && blogData.length > 0) {
-      setLocal(STORAGE_KEYS.BLOG, blogData as BlogPost[]);
+    try {
+      const { data: blogData } = await supabase.from('blog_posts').select('*');
+      if (blogData && blogData.length > 0) {
+        setLocal(STORAGE_KEYS.BLOG, blogData as BlogPost[]);
+      }
+    } catch {
+      // Table may be pending creation in migration
     }
 
     // 7. Fetch FAQs
-    const { data: faqData } = await supabase.from('faqs').select('*').order('order_index', { ascending: true });
-    if (faqData && faqData.length > 0) {
-      setLocal(STORAGE_KEYS.FAQS, faqData as FAQ[]);
+    try {
+      const { data: faqData } = await supabase.from('faqs').select('*').order('order_index', { ascending: true });
+      if (faqData && faqData.length > 0) {
+        setLocal(STORAGE_KEYS.FAQS, faqData as FAQ[]);
+      }
+    } catch {
+      // Table may be pending creation in migration
     }
 
-    // 8. Fetch Leads (if admin session active or public table allows)
-    const { data: leadsData } = await supabase.from('contact_messages').select('*').order('created_at', { ascending: false });
-    if (leadsData && leadsData.length > 0) {
-      setLocal(STORAGE_KEYS.LEADS, leadsData as Lead[]);
+    // 8. Fetch Leads (only when authenticated as admin)
+    if (Store.isAdminAuthenticated()) {
+      try {
+        const { data: leadsData } = await supabase.from('contact_messages').select('*').order('created_at', { ascending: false });
+        if (leadsData && leadsData.length > 0) {
+          setLocal(STORAGE_KEYS.LEADS, leadsData as Lead[]);
+        }
+      } catch {
+        // Table may be pending creation in migration
+      }
     }
 
     // Notify UI components of updated data
@@ -197,7 +202,6 @@ function setLocal<T>(key: string, value: T): void {
     try {
       localStorage.setItem(key, JSON.stringify(value));
     } catch (err) {
-      // If quota exceeded in localStorage, data is still 100% saved in IndexedDB
       console.warn(`Storage quota notice for ${key}, operating from IndexedDB.`, err);
     }
   }
@@ -226,54 +230,58 @@ export const Store = {
     }
   },
 
-  async seedAllToSupabase(): Promise<{ success: boolean; message: string }> {
+  async seedAllToSupabase(): Promise<{ success: boolean; message: string; error?: string }> {
     if (!isSupabaseConfigured || !supabase) {
       return { success: false, message: 'Supabase credentials are not configured.' };
     }
     try {
-      // Push settings
+      // 1. Push settings
       const settings = this.getSettings();
-      await supabase.from('site_settings').upsert([{ ...settings, id: SETTINGS_ROW_ID }]);
+      const { error: setErr } = await supabase.from('site_settings').upsert([{ ...settings, id: SETTINGS_ROW_ID }]);
+      if (setErr) throw setErr;
 
-      // Push categories
+      // 2. Push categories
       const cats = this.getCategories();
       if (cats.length > 0) {
-        await supabase.from('categories').upsert(cats);
+        const { error: catErr } = await supabase.from('categories').upsert(cats);
+        if (catErr) throw catErr;
       }
 
-      // Push products
+      // 3. Push products
       const prods = this.getProducts();
       if (prods.length > 0) {
-        await supabase.from('products').upsert(prods);
+        const { error: prodErr } = await supabase.from('products').upsert(prods);
+        if (prodErr) throw prodErr;
       }
 
-      // Push services
+      // 4. Push services
       const srvs = this.getServices();
       if (srvs.length > 0) {
-        await supabase.from('services').upsert(srvs);
+        await supabase.from('services').upsert(srvs).then();
       }
 
-      // Push FAQs
+      // 5. Push FAQs
       const faqs = this.getFAQs();
       if (faqs.length > 0) {
-        await supabase.from('faqs').upsert(faqs);
+        await supabase.from('faqs').upsert(faqs).then();
       }
 
-      // Push Blog posts
+      // 6. Push Blog posts
       const blogs = this.getBlogPosts();
       if (blogs.length > 0) {
-        await supabase.from('blog_posts').upsert(blogs);
+        await supabase.from('blog_posts').upsert(blogs).then();
       }
 
-      // Push Reviews
+      // 7. Push Reviews
       const revs = this.getReviews();
       if (revs.length > 0) {
-        await supabase.from('reviews').upsert(revs);
+        await supabase.from('reviews').upsert(revs).then();
       }
 
-      return { success: true, message: 'All products, categories & settings uploaded to Supabase!' };
+      return { success: true, message: 'Showroom products, categories and settings saved to Supabase cloud!' };
     } catch (err: any) {
-      return { success: false, message: err?.message || 'Seeding to Supabase failed.' };
+      const errMsg = err?.message || 'Database write rejected by policy.';
+      return { success: false, message: `Cloud upload error: ${errMsg}`, error: errMsg };
     }
   },
 
@@ -307,19 +315,28 @@ export const Store = {
     return merged;
   },
 
-  updateSettings(settings: Partial<SiteSettings>): SiteSettings {
+  async updateSettings(settings: Partial<SiteSettings>): Promise<{ success: boolean; data: SiteSettings; error?: string }> {
     const current = this.getSettings();
     const updated = { ...current, ...settings };
     setLocal(STORAGE_KEYS.SETTINGS, updated);
 
     // Sync to Supabase cloud database
     if (isSupabaseConfigured && supabase) {
-      supabase.from('site_settings').upsert([{
-        ...updated,
-        id: SETTINGS_ROW_ID
-      }]).then();
+      try {
+        const { error } = await supabase.from('site_settings').upsert([{
+          ...updated,
+          id: SETTINGS_ROW_ID
+        }]);
+        if (error) {
+          console.error('Supabase site_settings upsert error:', error);
+          return { success: false, data: updated, error: error.message };
+        }
+      } catch (err: any) {
+        console.error('Supabase site_settings network error:', err);
+        return { success: false, data: updated, error: err?.message || 'Network error' };
+      }
     }
-    return updated;
+    return { success: true, data: updated };
   },
 
   // --- Categories ---
@@ -336,16 +353,25 @@ export const Store = {
     return uniqueList.sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
   },
 
-  saveCategory(cat: Category): void {
+  async saveCategory(cat: Category): Promise<{ success: boolean; error?: string }> {
     const current = this.getCategories().filter(c => c.id !== cat.id);
     const list = [...current, cat];
     setLocal(STORAGE_KEYS.CATEGORIES, list);
     if (isSupabaseConfigured && supabase) {
-      supabase.from('categories').upsert([cat]).then();
+      try {
+        const { error } = await supabase.from('categories').upsert([cat]);
+        if (error) {
+          console.error('Supabase categories upsert error:', error);
+          return { success: false, error: error.message };
+        }
+      } catch (err: any) {
+        return { success: false, error: err?.message || 'Network error' };
+      }
     }
+    return { success: true };
   },
 
-  reorderCategories(orderedIds: string[]): void {
+  async reorderCategories(orderedIds: string[]): Promise<{ success: boolean; error?: string }> {
     const current = this.getCategories();
     const updated = current.map(cat => {
       const idx = orderedIds.indexOf(cat.id);
@@ -356,16 +382,28 @@ export const Store = {
     }).sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
     setLocal(STORAGE_KEYS.CATEGORIES, updated);
     if (isSupabaseConfigured && supabase) {
-      supabase.from('categories').upsert(updated).then();
+      try {
+        const { error } = await supabase.from('categories').upsert(updated);
+        if (error) return { success: false, error: error.message };
+      } catch (err: any) {
+        return { success: false, error: err?.message || 'Network error' };
+      }
     }
+    return { success: true };
   },
 
-  deleteCategory(id: string): void {
+  async deleteCategory(id: string): Promise<{ success: boolean; error?: string }> {
     const list = this.getCategories().filter(c => c.id !== id && c.slug !== id);
     setLocal(STORAGE_KEYS.CATEGORIES, list);
     if (isSupabaseConfigured && supabase) {
-      supabase.from('categories').delete().eq('id', id).then();
+      try {
+        const { error } = await supabase.from('categories').delete().eq('id', id);
+        if (error) return { success: false, error: error.message };
+      } catch (err: any) {
+        return { success: false, error: err?.message || 'Network error' };
+      }
     }
+    return { success: true };
   },
 
   // --- Subcategories ---
@@ -373,7 +411,7 @@ export const Store = {
     return getLocal<Subcategory[]>(STORAGE_KEYS.SUBCATEGORIES, initialSubcategories);
   },
 
-  saveSubcategory(sub: Subcategory): void {
+  async saveSubcategory(sub: Subcategory): Promise<{ success: boolean; error?: string }> {
     const list = [...this.getSubcategories()];
     const index = list.findIndex(s => s.id === sub.id);
     if (index >= 0) {
@@ -383,16 +421,28 @@ export const Store = {
     }
     setLocal(STORAGE_KEYS.SUBCATEGORIES, list);
     if (isSupabaseConfigured && supabase) {
-      supabase.from('subcategories').upsert([sub]).then();
+      try {
+        const { error } = await supabase.from('subcategories').upsert([sub]);
+        if (error) return { success: false, error: error.message };
+      } catch (err: any) {
+        return { success: false, error: err?.message };
+      }
     }
+    return { success: true };
   },
 
-  deleteSubcategory(id: string): void {
+  async deleteSubcategory(id: string): Promise<{ success: boolean; error?: string }> {
     const list = this.getSubcategories().filter(s => s.id !== id);
     setLocal(STORAGE_KEYS.SUBCATEGORIES, list);
     if (isSupabaseConfigured && supabase) {
-      supabase.from('subcategories').delete().eq('id', id).then();
+      try {
+        const { error } = await supabase.from('subcategories').delete().eq('id', id);
+        if (error) return { success: false, error: error.message };
+      } catch (err: any) {
+        return { success: false, error: err?.message };
+      }
     }
+    return { success: true };
   },
 
   // --- Products (NO PRICES - Inquiry Based) ---
@@ -438,7 +488,7 @@ export const Store = {
     });
   },
 
-  saveProduct(prod: Product): void {
+  async saveProduct(prod: Product): Promise<{ success: boolean; error?: string }> {
     const sanitizedProd: Product = {
       ...prod,
       images: Array.isArray(prod.images) && prod.images.length > 0 ? prod.images : [prod.main_image],
@@ -450,8 +500,17 @@ export const Store = {
     const list = [sanitizedProd, ...current];
     setLocal(STORAGE_KEYS.PRODUCTS, list);
     if (isSupabaseConfigured && supabase) {
-      supabase.from('products').upsert([sanitizedProd]).then();
+      try {
+        const { error } = await supabase.from('products').upsert([sanitizedProd]);
+        if (error) {
+          console.error('Supabase products upsert error:', error);
+          return { success: false, error: error.message };
+        }
+      } catch (err: any) {
+        return { success: false, error: err?.message || 'Network error' };
+      }
     }
+    return { success: true };
   },
 
   reorderProducts(orderedIds: string[]): void {
@@ -465,17 +524,22 @@ export const Store = {
         idMap.delete(id);
       }
     });
-    // Append remaining
     idMap.forEach(p => reordered.push(p));
     setLocal(STORAGE_KEYS.PRODUCTS, reordered);
   },
 
-  deleteProduct(id: string): void {
+  async deleteProduct(id: string): Promise<{ success: boolean; error?: string }> {
     const list = this.getProducts().filter(p => p.id !== id);
     setLocal(STORAGE_KEYS.PRODUCTS, list);
     if (isSupabaseConfigured && supabase) {
-      supabase.from('products').delete().eq('id', id).then();
+      try {
+        const { error } = await supabase.from('products').delete().eq('id', id);
+        if (error) return { success: false, error: error.message };
+      } catch (err: any) {
+        return { success: false, error: err?.message || 'Network error' };
+      }
     }
+    return { success: true };
   },
 
   // --- Gallery Items ---
@@ -483,7 +547,7 @@ export const Store = {
     return getLocal<GalleryItem[]>(STORAGE_KEYS.GALLERY, initialGalleryItems);
   },
 
-  saveGalleryItem(item: GalleryItem): void {
+  async saveGalleryItem(item: GalleryItem): Promise<{ success: boolean; error?: string }> {
     const list = [...this.getGallery()];
     const index = list.findIndex(g => g.id === item.id);
     if (index >= 0) {
@@ -493,16 +557,28 @@ export const Store = {
     }
     setLocal(STORAGE_KEYS.GALLERY, list);
     if (isSupabaseConfigured && supabase) {
-      supabase.from('gallery').upsert([item]).then();
+      try {
+        const { error } = await supabase.from('gallery').upsert([item]);
+        if (error) return { success: false, error: error.message };
+      } catch (err: any) {
+        return { success: false, error: err?.message };
+      }
     }
+    return { success: true };
   },
 
-  deleteGalleryItem(id: string): void {
+  async deleteGalleryItem(id: string): Promise<{ success: boolean; error?: string }> {
     const list = this.getGallery().filter(g => g.id !== id);
     setLocal(STORAGE_KEYS.GALLERY, list);
     if (isSupabaseConfigured && supabase) {
-      supabase.from('gallery').delete().eq('id', id).then();
+      try {
+        const { error } = await supabase.from('gallery').delete().eq('id', id);
+        if (error) return { success: false, error: error.message };
+      } catch (err: any) {
+        return { success: false, error: err?.message };
+      }
     }
+    return { success: true };
   },
 
   // --- Services ---
@@ -510,7 +586,7 @@ export const Store = {
     return getLocal<Service[]>(STORAGE_KEYS.SERVICES, initialServices);
   },
 
-  saveService(service: Service): void {
+  async saveService(service: Service): Promise<{ success: boolean; error?: string }> {
     const list = [...this.getServices()];
     const index = list.findIndex(s => s.id === service.id);
     if (index >= 0) {
@@ -520,16 +596,28 @@ export const Store = {
     }
     setLocal(STORAGE_KEYS.SERVICES, list);
     if (isSupabaseConfigured && supabase) {
-      supabase.from('services').upsert([service]).then();
+      try {
+        const { error } = await supabase.from('services').upsert([service]);
+        if (error) return { success: false, error: error.message };
+      } catch (err: any) {
+        return { success: false, error: err?.message };
+      }
     }
+    return { success: true };
   },
 
-  deleteService(id: string): void {
+  async deleteService(id: string): Promise<{ success: boolean; error?: string }> {
     const list = this.getServices().filter(s => s.id !== id);
     setLocal(STORAGE_KEYS.SERVICES, list);
     if (isSupabaseConfigured && supabase) {
-      supabase.from('services').delete().eq('id', id).then();
+      try {
+        const { error } = await supabase.from('services').delete().eq('id', id);
+        if (error) return { success: false, error: error.message };
+      } catch (err: any) {
+        return { success: false, error: err?.message };
+      }
     }
+    return { success: true };
   },
 
   // --- Reviews ---
@@ -541,7 +629,7 @@ export const Store = {
     return this.getReviews().filter(r => r.is_approved);
   },
 
-  submitReview(review: Omit<Review, 'id' | 'is_approved' | 'is_featured' | 'created_at'>): Review {
+  async submitReview(review: Omit<Review, 'id' | 'is_approved' | 'is_featured' | 'created_at'>): Promise<{ success: boolean; review: Review; error?: string }> {
     const newRev: Review = {
       ...review,
       id: 'rev-' + Date.now(),
@@ -553,29 +641,49 @@ export const Store = {
     list.unshift(newRev);
     setLocal(STORAGE_KEYS.REVIEWS, list);
     if (isSupabaseConfigured && supabase) {
-      supabase.from('reviews').insert([newRev]).then();
+      try {
+        const { error } = await supabase.from('reviews').insert([{
+          ...newRev,
+          is_approved: false
+        }]);
+        if (error) return { success: false, review: newRev, error: error.message };
+      } catch (err: any) {
+        return { success: false, review: newRev, error: err?.message };
+      }
     }
-    return newRev;
+    return { success: true, review: newRev };
   },
 
-  updateReview(review: Review): void {
+  async updateReview(review: Review): Promise<{ success: boolean; error?: string }> {
     const list = [...this.getReviews()];
     const index = list.findIndex(r => r.id === review.id);
     if (index >= 0) {
       list[index] = review;
       setLocal(STORAGE_KEYS.REVIEWS, list);
       if (isSupabaseConfigured && supabase) {
-        supabase.from('reviews').upsert([review]).then();
+        try {
+          const { error } = await supabase.from('reviews').upsert([review]);
+          if (error) return { success: false, error: error.message };
+        } catch (err: any) {
+          return { success: false, error: err?.message };
+        }
       }
     }
+    return { success: true };
   },
 
-  deleteReview(id: string): void {
+  async deleteReview(id: string): Promise<{ success: boolean; error?: string }> {
     const list = this.getReviews().filter(r => r.id !== id);
     setLocal(STORAGE_KEYS.REVIEWS, list);
     if (isSupabaseConfigured && supabase) {
-      supabase.from('reviews').delete().eq('id', id).then();
+      try {
+        const { error } = await supabase.from('reviews').delete().eq('id', id);
+        if (error) return { success: false, error: error.message };
+      } catch (err: any) {
+        return { success: false, error: err?.message };
+      }
     }
+    return { success: true };
   },
 
   // --- Blog ---
@@ -583,7 +691,7 @@ export const Store = {
     return getLocal<BlogPost[]>(STORAGE_KEYS.BLOG, initialBlogPosts);
   },
 
-  saveBlogPost(post: BlogPost): void {
+  async saveBlogPost(post: BlogPost): Promise<{ success: boolean; error?: string }> {
     const list = [...this.getBlogPosts()];
     const index = list.findIndex(b => b.id === post.id);
     if (index >= 0) {
@@ -593,16 +701,28 @@ export const Store = {
     }
     setLocal(STORAGE_KEYS.BLOG, list);
     if (isSupabaseConfigured && supabase) {
-      supabase.from('blog_posts').upsert([post]).then();
+      try {
+        const { error } = await supabase.from('blog_posts').upsert([post]);
+        if (error) return { success: false, error: error.message };
+      } catch (err: any) {
+        return { success: false, error: err?.message };
+      }
     }
+    return { success: true };
   },
 
-  deleteBlogPost(id: string): void {
+  async deleteBlogPost(id: string): Promise<{ success: boolean; error?: string }> {
     const list = this.getBlogPosts().filter(b => b.id !== id);
     setLocal(STORAGE_KEYS.BLOG, list);
     if (isSupabaseConfigured && supabase) {
-      supabase.from('blog_posts').delete().eq('id', id).then();
+      try {
+        const { error } = await supabase.from('blog_posts').delete().eq('id', id);
+        if (error) return { success: false, error: error.message };
+      } catch (err: any) {
+        return { success: false, error: err?.message };
+      }
     }
+    return { success: true };
   },
 
   // --- FAQs ---
@@ -610,7 +730,7 @@ export const Store = {
     return getLocal<FAQ[]>(STORAGE_KEYS.FAQS, initialFAQs);
   },
 
-  saveFAQ(faq: FAQ): void {
+  async saveFAQ(faq: FAQ): Promise<{ success: boolean; error?: string }> {
     const list = [...this.getFAQs()];
     const index = list.findIndex(f => f.id === faq.id);
     if (index >= 0) {
@@ -620,16 +740,28 @@ export const Store = {
     }
     setLocal(STORAGE_KEYS.FAQS, list);
     if (isSupabaseConfigured && supabase) {
-      supabase.from('faqs').upsert([faq]).then();
+      try {
+        const { error } = await supabase.from('faqs').upsert([faq]);
+        if (error) return { success: false, error: error.message };
+      } catch (err: any) {
+        return { success: false, error: err?.message };
+      }
     }
+    return { success: true };
   },
 
-  deleteFAQ(id: string): void {
+  async deleteFAQ(id: string): Promise<{ success: boolean; error?: string }> {
     const list = this.getFAQs().filter(f => f.id !== id);
     setLocal(STORAGE_KEYS.FAQS, list);
     if (isSupabaseConfigured && supabase) {
-      supabase.from('faqs').delete().eq('id', id).then();
+      try {
+        const { error } = await supabase.from('faqs').delete().eq('id', id);
+        if (error) return { success: false, error: error.message };
+      } catch (err: any) {
+        return { success: false, error: err?.message };
+      }
     }
+    return { success: true };
   },
 
   // --- Videos ---
@@ -683,7 +815,7 @@ export const Store = {
     ]);
   },
 
-  submitLead(lead: Omit<Lead, 'id' | 'created_at' | 'status'>): Lead {
+  async submitLead(lead: Omit<Lead, 'id' | 'created_at' | 'status'>): Promise<{ success: boolean; lead: Lead; error?: string }> {
     const newLead: Lead = {
       ...lead,
       id: 'lead-' + Date.now(),
@@ -695,29 +827,59 @@ export const Store = {
     setLocal(STORAGE_KEYS.LEADS, list);
 
     if (isSupabaseConfigured && supabase) {
-      supabase.from('contact_messages').insert([newLead]).then();
+      try {
+        // Exclude client-generated text ID so Postgres generates default UUID if column expects uuid
+        const { error } = await supabase.from('contact_messages').insert([{
+          name: lead.name,
+          phone: lead.phone,
+          whatsapp: lead.whatsapp || lead.phone,
+          email: lead.email || '',
+          interest: lead.interest || '',
+          message: lead.message,
+          source_page: lead.source_page || 'contact',
+          status: 'new'
+        }]);
+        if (error) {
+          console.warn('Supabase contact_messages submission error:', error.message);
+          return { success: false, lead: newLead, error: error.message };
+        }
+      } catch (err: any) {
+        return { success: false, lead: newLead, error: err?.message };
+      }
     }
-    return newLead;
+    return { success: true, lead: newLead };
   },
 
-  updateLeadStatus(id: string, status: Lead['status']): void {
+  async updateLeadStatus(id: string, status: Lead['status']): Promise<{ success: boolean; error?: string }> {
     const list = [...this.getLeads()];
     const index = list.findIndex(l => l.id === id);
     if (index >= 0) {
       list[index].status = status;
       setLocal(STORAGE_KEYS.LEADS, list);
       if (isSupabaseConfigured && supabase) {
-        supabase.from('contact_messages').update({ status }).eq('id', id).then();
+        try {
+          const { error } = await supabase.from('contact_messages').update({ status }).eq('id', id);
+          if (error) return { success: false, error: error.message };
+        } catch (err: any) {
+          return { success: false, error: err?.message };
+        }
       }
     }
+    return { success: true };
   },
 
-  deleteLead(id: string): void {
+  async deleteLead(id: string): Promise<{ success: boolean; error?: string }> {
     const list = this.getLeads().filter(l => l.id !== id);
     setLocal(STORAGE_KEYS.LEADS, list);
     if (isSupabaseConfigured && supabase) {
-      supabase.from('contact_messages').delete().eq('id', id).then();
+      try {
+        const { error } = await supabase.from('contact_messages').delete().eq('id', id);
+        if (error) return { success: false, error: error.message };
+      } catch (err: any) {
+        return { success: false, error: err?.message };
+      }
     }
+    return { success: true };
   },
 
   // --- Wishlist ---
@@ -748,7 +910,7 @@ export const Store = {
     ]);
   },
 
-  addMedia(name: string, url: string): void {
+  async addMedia(name: string, url: string): Promise<{ success: boolean; error?: string }> {
     const list = [...this.getMedia()];
     const item = {
       id: 'med-' + Date.now(),
@@ -759,22 +921,34 @@ export const Store = {
     list.unshift(item);
     setLocal(STORAGE_KEYS.MEDIA, list);
     if (isSupabaseConfigured && supabase) {
-      supabase.from('media_items').insert([{
-        id: item.id,
-        file_name: item.name,
-        file_url: item.url,
-        file_type: 'image',
-        file_size: 0
-      }]).then();
+      try {
+        const { error } = await supabase.from('media_items').insert([{
+          id: item.id,
+          file_name: item.name,
+          file_url: item.url,
+          file_type: 'image',
+          file_size: 0
+        }]);
+        if (error) return { success: false, error: error.message };
+      } catch (err: any) {
+        return { success: false, error: err?.message };
+      }
     }
+    return { success: true };
   },
 
-  deleteMedia(id: string): void {
+  async deleteMedia(id: string): Promise<{ success: boolean; error?: string }> {
     const list = this.getMedia().filter(m => m.id !== id);
     setLocal(STORAGE_KEYS.MEDIA, list);
     if (isSupabaseConfigured && supabase) {
-      supabase.from('media_items').delete().eq('id', id).then();
+      try {
+        const { error } = await supabase.from('media_items').delete().eq('id', id);
+        if (error) return { success: false, error: error.message };
+      } catch (err: any) {
+        return { success: false, error: err?.message };
+      }
     }
+    return { success: true };
   },
 
   // --- Reset All Data Utility ---
@@ -806,7 +980,7 @@ export const Store = {
       authenticated: isAuth,
       email: session?.email || settings.email || 'imranshah1984@gmail.com',
       timestamp: session?.timestamp || Date.now(),
-      provider: isSupabaseConfigured ? 'Supabase Cloud Integration' : 'Local Admin Session'
+      provider: session?.provider || (isSupabaseConfigured ? 'Supabase Authentication' : 'Local Admin Session')
     };
   },
 
@@ -818,55 +992,42 @@ export const Store = {
 
     const adminEmail = email?.trim() || this.getSettings().email || 'imranshah1984@gmail.com';
 
-    // Try Supabase Auth first if configured
+    // 1. Mandatory Supabase Auth when Supabase is configured
     if (isSupabaseConfigured && supabase) {
       try {
         const { data, error } = await supabase.auth.signInWithPassword({
           email: adminEmail,
           password: cleanPass
         });
-        if (!error && data?.user) {
+        if (error) {
+          return { 
+            success: false, 
+            error: `Supabase login failed: ${error.message}. Please ensure the user ${adminEmail} is created in Supabase Dashboard → Authentication → Users.` 
+          };
+        }
+        if (data?.user) {
           setLocal(STORAGE_KEYS.ADMIN_AUTH, { 
             authenticated: true, 
             email: data.user.email || adminEmail,
             provider: 'Supabase Authentication',
             timestamp: Date.now() 
           });
+          // Immediately trigger fresh sync with authenticated credentials
+          syncRemoteFromSupabase();
           return { success: true };
         }
       } catch (err: any) {
-        // Supabase user might not have been created yet, check password fallback
+        return { 
+          success: false, 
+          error: `Authentication connection error: ${err?.message || 'Check network connection'}` 
+        };
       }
     }
 
-    // Secure verified password authentication
-    const storedHash = getLocal<string | null>('woodcare_admin_passhash', null);
-    if (storedHash) {
-      if (btoa(cleanPass) === storedHash) {
-        setLocal(STORAGE_KEYS.ADMIN_AUTH, { 
-          authenticated: true, 
-          email: adminEmail,
-          provider: 'Authenticated Admin Session',
-          timestamp: Date.now() 
-        });
-        return { success: true };
-      }
-      return { success: false, error: 'Incorrect password. Please try again.' };
-    }
-
-    // Default showroom access passcode if initial setup
-    if (cleanPass.length >= 4) {
-      setLocal('woodcare_admin_passhash', btoa(cleanPass));
-      setLocal(STORAGE_KEYS.ADMIN_AUTH, { 
-        authenticated: true, 
-        email: adminEmail,
-        provider: 'Authenticated Admin Session',
-        timestamp: Date.now() 
-      });
-      return { success: true };
-    }
-
-    return { success: false, error: 'Invalid password. Please enter a valid password.' };
+    return { 
+      success: false, 
+      error: 'Supabase is not configured. Please supply VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY.' 
+    };
   },
 
   async updateAdminPassword(currentPassword: string, newPassword: string): Promise<{ success: boolean; message?: string; error?: string }> {
@@ -907,20 +1068,18 @@ export const Store = {
             return { success: false, error: error.message };
           }
           return { success: true, message: 'Password updated successfully in Supabase Authentication!' };
+        } else {
+          // Attempt updateUser directly if session is active
+          const { error } = await supabase.auth.updateUser({ password: next });
+          if (error) return { success: false, error: error.message };
+          return { success: true, message: 'Password updated successfully in Supabase Authentication!' };
         }
       } catch (err: any) {
-        // Fallback to local hash
+        return { success: false, error: err?.message || 'Failed to update password' };
       }
     }
 
-    // Local fallback verification & update
-    const storedHash = getLocal<string | null>('woodcare_admin_passhash', null);
-    if (storedHash && btoa(cur) !== storedHash) {
-      return { success: false, error: 'Current password is incorrect.' };
-    }
-
-    setLocal('woodcare_admin_passhash', btoa(next));
-    return { success: true, message: 'Password updated successfully!' };
+    return { success: false, error: 'Supabase authentication is not active.' };
   },
 
   async adminLogout(): Promise<void> {
