@@ -52,8 +52,13 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
     );
   }
 
-  const category = categories.find(c => c.id === product.category_id);
-  const subcategory = subcategories.find(s => s.id === product.subcategory_id);
+  const category = categories.find(c => 
+    (product.category_id && c.id && c.id.toLowerCase() === product.category_id.toLowerCase()) || 
+    (product.category_id && c.slug && c.slug.toLowerCase() === product.category_id.toLowerCase())
+  );
+  const subcategory = subcategories.find(s => 
+    product.subcategory_id && s.id && s.id.toLowerCase() === product.subcategory_id.toLowerCase()
+  );
   const saved = isSaved(product.id);
 
   const allImages = Array.from(new Set([product.main_image, ...(product.images || [])]));

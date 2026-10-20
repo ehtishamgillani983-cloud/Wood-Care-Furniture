@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Upload, Image as ImageIcon, X, Link as LinkIcon, Film, Check } from 'lucide-react';
+import { uploadMediaFile } from '../services/storage';
 
 interface ImageDropzoneProps {
   value: string;
@@ -92,24 +93,16 @@ export const ImageDropzone: React.FC<ImageDropzoneProps> = ({
 
     setIsProcessing(true);
     try {
-      if (isImage) {
-        const compressed = await compressImageFile(file);
-        if (compressed) {
-          onChange(compressed);
+      const res = await uploadMediaFile(file, 'showroom');
+      if (res.url) {
+        onChange(res.url);
+        if (res.bucketMissing && res.error) {
+          setErrorMessage(res.error);
         }
-      } else if (isVideo) {
-        // For video files, read as data URL if small, or keep URL
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          if (e.target?.result) {
-            onChange(e.target.result as string);
-          }
-          setIsProcessing(false);
-        };
-        reader.readAsDataURL(file);
-        return;
+      } else if (res.error) {
+        setErrorMessage(res.error);
       }
-    } catch (err) {
+    } catch (err: any) {
       setErrorMessage('Failed to process file. Try pasting a direct URL.');
     } finally {
       setIsProcessing(false);
@@ -218,7 +211,7 @@ export const ImageDropzone: React.FC<ImageDropzoneProps> = ({
             )}
           </div>
           <p className="text-xs sm:text-sm font-semibold text-[#FAF6F0]">
-            {isProcessing ? 'Optimizing Media...' : 'Click to upload or Drag & Drop'}
+            {isProcessing ? 'Uploading to Supabase Storage...' : 'Click to upload or Drag & Drop'}
           </p>
           <p className="text-[11px] text-stone-400 mt-1 max-w-sm mx-auto leading-relaxed">
             {helperText}

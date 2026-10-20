@@ -21,6 +21,7 @@ export interface Product {
   price: number | null;
   price_visible: boolean;
   quote_only: boolean;
+  order_index?: number;
   seo_title?: string;
   seo_description?: string;
   created_at?: string;

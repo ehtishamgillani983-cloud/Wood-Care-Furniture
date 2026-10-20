@@ -38,7 +38,7 @@ export function useStoreData() {
   };
 }
 
-export function useSettings(): [SiteSettings, (newSettings: Partial<SiteSettings>) => void] {
+export function useSettings(): [SiteSettings, (newSettings: Partial<SiteSettings>) => Promise<{ success: boolean; data: SiteSettings; error?: string }>] {
   const [settings, setSettings] = useState<SiteSettings>(Store.getSettings());
 
   useEffect(() => {
@@ -49,9 +49,10 @@ export function useSettings(): [SiteSettings, (newSettings: Partial<SiteSettings
     return () => window.removeEventListener('woodcare_store_updated', handleUpdate);
   }, []);
 
-  const update = (newSettings: Partial<SiteSettings>) => {
-    const updated = Store.updateSettings(newSettings);
-    setSettings(updated);
+  const update = async (newSettings: Partial<SiteSettings>) => {
+    const res = await Store.updateSettings(newSettings);
+    setSettings(res.data);
+    return res;
   };
 
   return [settings, update];

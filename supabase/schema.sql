@@ -19,7 +19,6 @@ CREATE TABLE IF NOT EXISTS admin_users (
 
 ALTER TABLE admin_users ENABLE ROW LEVEL SECURITY;
 
--- Security helper function: returns true if the current executing session belongs to an authorized admin
 CREATE OR REPLACE FUNCTION is_admin()
 RETURNS BOOLEAN
 LANGUAGE sql
@@ -29,7 +28,10 @@ STABLE
 AS $$
   SELECT EXISTS (
     SELECT 1 FROM admin_users
-    WHERE user_id = auth.uid() OR lower(email) = lower(auth.jwt() ->> 'email')
+    WHERE (user_id = auth.uid() OR lower(email) = lower(auth.jwt() ->> 'email'))
+      AND role IN ('admin', 'super_admin')
+  ) OR (
+    (auth.jwt() -> 'app_metadata' ->> 'role') IN ('admin', 'super_admin')
   );
 $$;
 
@@ -38,6 +40,13 @@ DROP POLICY IF EXISTS "Admin view own profile" ON admin_users;
 CREATE POLICY "Admin view own profile" ON admin_users
   FOR SELECT TO authenticated
   USING (is_admin());
+
+-- Authenticated admins can update their user_id association in admin_users
+DROP POLICY IF EXISTS "Admin update own profile" ON admin_users;
+CREATE POLICY "Admin update own profile" ON admin_users
+  FOR UPDATE TO authenticated
+  USING (is_admin())
+  WITH CHECK (is_admin());
 
 -- 3. Site Settings & Branding
 CREATE TABLE IF NOT EXISTS site_settings (
@@ -147,6 +156,29 @@ CREATE TABLE IF NOT EXISTS products (
   seo_description TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Ensure all required columns exist if products or categories table was created earlier
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'order_index') THEN
+    ALTER TABLE products ADD COLUMN order_index INTEGER DEFAULT 0;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'updated_at') THEN
+    ALTER TABLE products ADD COLUMN updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'categories' AND column_name = 'updated_at') THEN
+    ALTER TABLE categories ADD COLUMN updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+  END IF;
+END $$;
+
+-- Performance and relationship indexes
+CREATE INDEX IF NOT EXISTS idx_products_category_id ON products(category_id);
+CREATE INDEX IF NOT EXISTS idx_products_subcategory_id ON products(subcategory_id);
+CREATE INDEX IF NOT EXISTS idx_subcategories_category_id ON subcategories(category_id);
+CREATE INDEX IF NOT EXISTS idx_categories_slug ON categories(slug);
+CREATE INDEX IF NOT EXISTS idx_products_slug ON products(slug);
+CREATE INDEX IF NOT EXISTS idx_admin_users_email ON admin_users(email);
+CREATE INDEX IF NOT EXISTS idx_admin_users_user_id ON admin_users(user_id);
 
 -- 7. Gallery Items
 CREATE TABLE IF NOT EXISTS gallery (
@@ -410,5 +442,48 @@ CREATE POLICY "Admin manage media_items" ON media_items
 -- Seed the showroom owner email into admin_users allowlist
 -- --------------------------------------------------
 INSERT INTO admin_users (email, role)
-VALUES ('imranshah1984@gmail.com', 'super_admin')
-ON CONFLICT (email) DO NOTHING;
+VALUES 
+  ('webstudionova1@gmail.com', 'super_admin'),
+  ('imranshah1984@gmail.com', 'super_admin')
+ON CONFLICT (email) DO UPDATE SET role = 'super_admin';
+
+-- --------------------------------------------------
+-- E. Supabase Storage Bucket Configuration
+-- Public 'media' bucket for showroom photos, videos, and logos
+-- --------------------------------------------------
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'media',
+  'media',
+  true,
+  20971520, -- 20MB limit
+  ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml', 'video/mp4', 'video/webm']
+)
+ON CONFLICT (id) DO UPDATE SET public = true;
+
+-- Storage Row Level Security Policies
+DROP POLICY IF EXISTS "Public read media objects" ON storage.objects;
+CREATE POLICY "Public read media objects"
+ON storage.objects FOR SELECT
+TO public
+USING (bucket_id = 'media');
+
+DROP POLICY IF EXISTS "Admin upload media objects" ON storage.objects;
+CREATE POLICY "Admin upload media objects"
+ON storage.objects FOR INSERT
+TO authenticated
+WITH CHECK (bucket_id = 'media' AND is_admin());
+
+DROP POLICY IF EXISTS "Admin update media objects" ON storage.objects;
+CREATE POLICY "Admin update media objects"
+ON storage.objects FOR UPDATE
+TO authenticated
+USING (bucket_id = 'media' AND is_admin())
+WITH CHECK (bucket_id = 'media' AND is_admin());
+
+DROP POLICY IF EXISTS "Admin delete media objects" ON storage.objects;
+CREATE POLICY "Admin delete media objects"
+ON storage.objects FOR DELETE
+TO authenticated
+USING (bucket_id = 'media' AND is_admin());
+

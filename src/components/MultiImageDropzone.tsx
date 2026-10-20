@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Upload, X, ArrowLeft, ArrowRight, Image as ImageIcon, Plus } from 'lucide-react';
+import { uploadMediaFile } from '../services/storage';
 
 export async function compressImageFile(file: File): Promise<string> {
   return new Promise((resolve) => {
@@ -89,15 +90,26 @@ export const MultiImageDropzone: React.FC<MultiImageDropzoneProps> = ({
 
     setIsProcessing(true);
     try {
-      const compressedList: string[] = [];
+      const uploadedList: string[] = [];
+      let missingBucketMsg: string | null = null;
+
       for (const file of validFiles) {
-        const compressed = await compressImageFile(file);
-        if (compressed) {
-          compressedList.push(compressed);
+        const res = await uploadMediaFile(file, 'products');
+        if (res.url) {
+          uploadedList.push(res.url);
+        }
+        if (res.bucketMissing && res.error) {
+          missingBucketMsg = res.error;
         }
       }
-      const updated = [...images, ...compressedList].slice(0, maxImages);
-      onChange(updated);
+
+      if (uploadedList.length > 0) {
+        const updated = [...images, ...uploadedList].slice(0, maxImages);
+        onChange(updated);
+      }
+      if (missingBucketMsg) {
+        setErrorMessage(missingBucketMsg);
+      }
     } catch {
       setErrorMessage('Failed to process one or more images. Please try again.');
     } finally {

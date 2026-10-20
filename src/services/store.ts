@@ -68,9 +68,78 @@ if (typeof window !== 'undefined') {
 
   // Pull remote data from Supabase centrally and sync into local store
   if (isSupabaseConfigured && supabase) {
-    setTimeout(() => {
+    const client = supabase;
+    const verifyAndStoreAdminSession = async (userEmail: string, userId: string, appRole?: string) => {
+      try {
+        const isAppAdmin = appRole === 'admin' || appRole === 'super_admin';
+        const cleanEmail = userEmail.toLowerCase();
+        const { data: adminRecord } = await client
+          .from('admin_users')
+          .select('role')
+          .or(`user_id.eq.${userId},email.eq.${cleanEmail}`)
+          .maybeSingle();
+
+        const role = adminRecord?.role || (isAppAdmin ? (appRole as string) : null);
+
+        if (role === 'admin' || role === 'super_admin') {
+          setLocal(STORAGE_KEYS.ADMIN_AUTH, {
+            authenticated: true,
+            email: userEmail,
+            role,
+            provider: 'Supabase Authentication',
+            timestamp: Date.now()
+          });
+          return true;
+        } else {
+          // User is not in admin allowlist
+          delete memoryCache[STORAGE_KEYS.ADMIN_AUTH];
+          try {
+            localStorage.removeItem(STORAGE_KEYS.ADMIN_AUTH);
+          } catch {}
+          window.dispatchEvent(new CustomEvent('woodcare_store_updated', { detail: { key: STORAGE_KEYS.ADMIN_AUTH } }));
+          return false;
+        }
+      } catch {
+        return false;
+      }
+    };
+
+    // Check existing active Supabase session
+    client.auth.getSession().then(async ({ data }) => {
+      if (data?.session?.user?.email) {
+        await verifyAndStoreAdminSession(
+          data.session.user.email, 
+          data.session.user.id,
+          (data.session.user.app_metadata?.role as string)
+        );
+      } else {
+        delete memoryCache[STORAGE_KEYS.ADMIN_AUTH];
+        try {
+          localStorage.removeItem(STORAGE_KEYS.ADMIN_AUTH);
+        } catch {}
+      }
       syncRemoteFromSupabase();
-    }, 150);
+    }).catch(() => {
+      syncRemoteFromSupabase();
+    });
+
+    // Listen to real-time auth changes
+    client.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user?.email) {
+        await verifyAndStoreAdminSession(
+          session.user.email, 
+          session.user.id,
+          (session.user.app_metadata?.role as string)
+        );
+        syncRemoteFromSupabase();
+      } else if (_event === 'SIGNED_OUT') {
+        delete memoryCache[STORAGE_KEYS.ADMIN_AUTH];
+        try {
+          localStorage.removeItem(STORAGE_KEYS.ADMIN_AUTH);
+        } catch {}
+        window.dispatchEvent(new CustomEvent('woodcare_store_updated', { detail: { key: STORAGE_KEYS.ADMIN_AUTH } }));
+      }
+    });
   }
 }
 
@@ -94,6 +163,16 @@ async function syncRemoteFromSupabase(): Promise<void> {
     const { data: catData } = await supabase.from('categories').select('*').order('order_index', { ascending: true });
     if (catData && catData.length > 0) {
       setLocal(STORAGE_KEYS.CATEGORIES, catData as Category[]);
+    }
+
+    // 2b. Fetch subcategories
+    try {
+      const { data: subData } = await supabase.from('subcategories').select('*').order('order_index', { ascending: true });
+      if (subData && subData.length > 0) {
+        setLocal(STORAGE_KEYS.SUBCATEGORIES, subData as Subcategory[]);
+      }
+    } catch {
+      // Table may be pending creation in migration
     }
 
     // 3. Fetch products
@@ -151,7 +230,33 @@ async function syncRemoteFromSupabase(): Promise<void> {
       // Table may be pending creation in migration
     }
 
-    // 8. Fetch Leads (only when authenticated as admin)
+    // 8. Fetch Gallery
+    try {
+      const { data: galData } = await supabase.from('gallery').select('*').order('order_index', { ascending: true });
+      if (galData && galData.length > 0) {
+        setLocal(STORAGE_KEYS.GALLERY, galData as GalleryItem[]);
+      }
+    } catch {
+      // Table may be pending creation in migration
+    }
+
+    // 9. Fetch Media items
+    try {
+      const { data: mediaData } = await supabase.from('media_items').select('*').order('created_at', { ascending: false });
+      if (mediaData && mediaData.length > 0) {
+        const formatted = mediaData.map((m: any) => ({
+          id: m.id,
+          name: m.file_name,
+          url: m.file_url,
+          date: m.created_at ? m.created_at.split('T')[0] : new Date().toISOString().split('T')[0]
+        }));
+        setLocal(STORAGE_KEYS.MEDIA, formatted);
+      }
+    } catch {
+      // Table may be pending creation in migration
+    }
+
+    // 10. Fetch Leads (only when authenticated as admin)
     if (Store.isAdminAuthenticated()) {
       try {
         const { data: leadsData } = await supabase.from('contact_messages').select('*').order('created_at', { ascending: false });
@@ -212,6 +317,100 @@ function setLocal<T>(key: string, value: T): void {
   }
 }
 
+// --- Database Schema Sanitizers to prevent 400 column errors ---
+function sanitizeSettingsForSupabase(s: SiteSettings) {
+  return {
+    id: SETTINGS_ROW_ID,
+    brand_name: s.brand_name || 'Wood Care Furniture',
+    tagline: s.tagline || '',
+    logo_url: s.logo_url || '',
+    favicon_url: s.favicon_url || '',
+    phone: s.phone || '+92 332 5099930',
+    whatsapp: s.whatsapp || '+92 332 5099930',
+    email: s.email || 'imranshah1984@gmail.com',
+    address: s.address || 'M33J+C6H, Shamsabad, Rawalpindi, Pakistan',
+    postal_code: s.postal_code || '46000',
+    opening_hours: s.opening_hours || '9:00 AM – 9:00 PM',
+    instagram_url: s.instagram_url || '',
+    facebook_url: s.facebook_url || '',
+    google_maps_url: s.google_maps_url || '',
+    hero_heading: s.hero_heading || '',
+    hero_subheading: s.hero_subheading || '',
+    hero_media_url: s.hero_media_url || '',
+    hero_video_url: s.hero_video_url || '',
+    hero_video_overlay: typeof s.hero_video_overlay === 'number' ? s.hero_video_overlay : 0.38,
+    hero_videos: Array.isArray(s.hero_videos) ? s.hero_videos : [],
+    hero_images: Array.isArray(s.hero_images) ? s.hero_images : [],
+    hero_cta_text: s.hero_cta_text || 'Explore Furniture',
+    hero_cta_link: s.hero_cta_link || '/furniture',
+    hero_interval_seconds: typeof s.hero_interval_seconds === 'number' ? s.hero_interval_seconds : 6,
+    footer_description: s.footer_description || '',
+    copyright_text: s.copyright_text || '',
+    seo_title: s.seo_title || '',
+    seo_description: s.seo_description || '',
+    seo_keywords: s.seo_keywords || '',
+    updated_at: new Date().toISOString()
+  };
+}
+
+function sanitizeCategoryForSupabase(c: Category) {
+  return {
+    id: c.id,
+    name: c.name,
+    slug: c.slug,
+    description: c.description || '',
+    image: c.image || '',
+    order_index: typeof c.order_index === 'number' ? c.order_index : 0,
+    is_active: c.is_active ?? true,
+    is_featured: c.is_featured ?? false,
+    seo_title: c.seo_title || null,
+    seo_description: c.seo_description || null
+  };
+}
+
+function sanitizeProductForSupabase(p: Product) {
+  return {
+    id: p.id,
+    name: p.name,
+    slug: p.slug,
+    category_id: p.category_id || null,
+    subcategory_id: p.subcategory_id || null,
+    main_image: p.main_image,
+    images: Array.isArray(p.images) && p.images.length > 0 ? p.images : [p.main_image],
+    video_url: p.video_url || null,
+    description: p.description || '',
+    short_description: p.short_description || '',
+    material: p.material || '',
+    dimensions: p.dimensions || '',
+    finish: p.finish || '',
+    availability: p.availability || 'made_to_order',
+    customizable: p.customizable ?? true,
+    featured: p.featured ?? true,
+    is_new: p.is_new ?? false,
+    is_bestseller: p.is_bestseller ?? false,
+    tags: Array.isArray(p.tags) ? p.tags : [],
+    price: null,
+    price_visible: false,
+    quote_only: true,
+    order_index: typeof p.order_index === 'number' ? p.order_index : 0,
+    created_at: p.created_at || new Date().toISOString()
+  };
+}
+
+function sanitizeGalleryForSupabase(g: GalleryItem) {
+  return {
+    id: g.id,
+    title: g.title,
+    description: g.description || '',
+    image: g.image,
+    category_name: g.category_name || (g as any).category || 'Living Room',
+    featured: g.featured ?? false,
+    order_index: typeof g.order_index === 'number' ? g.order_index : 0,
+    is_active: g.is_active ?? true,
+    aspect_ratio: g.aspect_ratio || 'standard'
+  };
+}
+
 export const Store = {
   // --- Check Supabase Configuration Status ---
   isSupabaseConnected(): boolean {
@@ -237,48 +436,68 @@ export const Store = {
     try {
       // 1. Push settings
       const settings = this.getSettings();
-      const { error: setErr } = await supabase.from('site_settings').upsert([{ ...settings, id: SETTINGS_ROW_ID }]);
+      const payloadSettings = sanitizeSettingsForSupabase(settings);
+      const { error: setErr } = await supabase.from('site_settings').upsert([payloadSettings]);
       if (setErr) throw setErr;
 
       // 2. Push categories
       const cats = this.getCategories();
       if (cats.length > 0) {
-        const { error: catErr } = await supabase.from('categories').upsert(cats);
+        const payloadCats = cats.map(sanitizeCategoryForSupabase);
+        const { error: catErr } = await supabase.from('categories').upsert(payloadCats);
         if (catErr) throw catErr;
+      }
+
+      // 2b. Push subcategories
+      try {
+        const subcats = this.getSubcategories();
+        if (subcats.length > 0) {
+          await supabase.from('subcategories').upsert(subcats);
+        }
+      } catch {
+        // subcategories table may be pending creation
       }
 
       // 3. Push products
       const prods = this.getProducts();
       if (prods.length > 0) {
-        const { error: prodErr } = await supabase.from('products').upsert(prods);
+        const payloadProds = prods.map(sanitizeProductForSupabase);
+        const { error: prodErr } = await supabase.from('products').upsert(payloadProds);
         if (prodErr) throw prodErr;
       }
 
-      // 4. Push services
+      // 4. Push gallery
+      const gals = this.getGallery();
+      if (gals.length > 0) {
+        const payloadGals = gals.map(sanitizeGalleryForSupabase);
+        await supabase.from('gallery').upsert(payloadGals).then();
+      }
+
+      // 5. Push services
       const srvs = this.getServices();
       if (srvs.length > 0) {
         await supabase.from('services').upsert(srvs).then();
       }
 
-      // 5. Push FAQs
+      // 6. Push FAQs
       const faqs = this.getFAQs();
       if (faqs.length > 0) {
         await supabase.from('faqs').upsert(faqs).then();
       }
 
-      // 6. Push Blog posts
+      // 7. Push Blog posts
       const blogs = this.getBlogPosts();
       if (blogs.length > 0) {
         await supabase.from('blog_posts').upsert(blogs).then();
       }
 
-      // 7. Push Reviews
+      // 8. Push Reviews
       const revs = this.getReviews();
       if (revs.length > 0) {
         await supabase.from('reviews').upsert(revs).then();
       }
 
-      return { success: true, message: 'Showroom products, categories and settings saved to Supabase cloud!' };
+      return { success: true, message: 'Showroom products, categories, gallery, and settings saved to Supabase cloud!' };
     } catch (err: any) {
       const errMsg = err?.message || 'Database write rejected by policy.';
       return { success: false, message: `Cloud upload error: ${errMsg}`, error: errMsg };
@@ -323,10 +542,8 @@ export const Store = {
     // Sync to Supabase cloud database
     if (isSupabaseConfigured && supabase) {
       try {
-        const { error } = await supabase.from('site_settings').upsert([{
-          ...updated,
-          id: SETTINGS_ROW_ID
-        }]);
+        const payload = sanitizeSettingsForSupabase(updated);
+        const { error } = await supabase.from('site_settings').upsert([payload]);
         if (error) {
           console.error('Supabase site_settings upsert error:', error);
           return { success: false, data: updated, error: error.message };
@@ -343,10 +560,12 @@ export const Store = {
   getCategories(): Category[] {
     const list = getLocal<Category[]>(STORAGE_KEYS.CATEGORIES, initialCategories);
     const seen = new Set<string>();
+    const seenSlugs = new Set<string>();
     const uniqueList: Category[] = [];
     for (const c of list) {
-      if (c && c.id && !seen.has(c.id)) {
+      if (c && c.id && !seen.has(c.id) && (!c.slug || !seenSlugs.has(c.slug.toLowerCase()))) {
         seen.add(c.id);
+        if (c.slug) seenSlugs.add(c.slug.toLowerCase());
         uniqueList.push(c);
       }
     }
@@ -354,12 +573,13 @@ export const Store = {
   },
 
   async saveCategory(cat: Category): Promise<{ success: boolean; error?: string }> {
-    const current = this.getCategories().filter(c => c.id !== cat.id);
+    const current = this.getCategories().filter(c => c.id !== cat.id && c.slug.toLowerCase() !== cat.slug.toLowerCase());
     const list = [...current, cat];
     setLocal(STORAGE_KEYS.CATEGORIES, list);
     if (isSupabaseConfigured && supabase) {
       try {
-        const { error } = await supabase.from('categories').upsert([cat]);
+        const payload = sanitizeCategoryForSupabase(cat);
+        const { error } = await supabase.from('categories').upsert([payload]);
         if (error) {
           console.error('Supabase categories upsert error:', error);
           return { success: false, error: error.message };
@@ -383,7 +603,8 @@ export const Store = {
     setLocal(STORAGE_KEYS.CATEGORIES, updated);
     if (isSupabaseConfigured && supabase) {
       try {
-        const { error } = await supabase.from('categories').upsert(updated);
+        const payloads = updated.map(sanitizeCategoryForSupabase);
+        const { error } = await supabase.from('categories').upsert(payloads);
         if (error) return { success: false, error: error.message };
       } catch (err: any) {
         return { success: false, error: err?.message || 'Network error' };
@@ -397,6 +618,8 @@ export const Store = {
     setLocal(STORAGE_KEYS.CATEGORIES, list);
     if (isSupabaseConfigured && supabase) {
       try {
+        // Disassociate products referencing this category to avoid foreign key failure
+        await supabase.from('products').update({ category_id: null }).eq('category_id', id);
         const { error } = await supabase.from('categories').delete().eq('id', id);
         if (error) return { success: false, error: error.message };
       } catch (err: any) {
@@ -449,10 +672,12 @@ export const Store = {
   getProducts(): Product[] {
     const list = getLocal<Product[]>(STORAGE_KEYS.PRODUCTS, initialProducts);
     const seen = new Set<string>();
+    const seenSlugs = new Set<string>();
     const uniqueList: Product[] = [];
     for (const p of list) {
-      if (p && p.id && !seen.has(p.id)) {
+      if (p && p.id && !seen.has(p.id) && (!p.slug || !seenSlugs.has(p.slug.toLowerCase()))) {
         seen.add(p.id);
+        if (p.slug) seenSlugs.add(p.slug.toLowerCase());
         uniqueList.push({
           ...p,
           price: null,
@@ -496,12 +721,13 @@ export const Store = {
       price_visible: false,
       quote_only: true
     };
-    const current = this.getProducts().filter(p => p.id !== sanitizedProd.id);
+    const current = this.getProducts().filter(p => p.id !== sanitizedProd.id && p.slug.toLowerCase() !== sanitizedProd.slug.toLowerCase());
     const list = [sanitizedProd, ...current];
     setLocal(STORAGE_KEYS.PRODUCTS, list);
     if (isSupabaseConfigured && supabase) {
       try {
-        const { error } = await supabase.from('products').upsert([sanitizedProd]);
+        const payload = sanitizeProductForSupabase(sanitizedProd);
+        const { error } = await supabase.from('products').upsert([payload]);
         if (error) {
           console.error('Supabase products upsert error:', error);
           return { success: false, error: error.message };
@@ -558,7 +784,8 @@ export const Store = {
     setLocal(STORAGE_KEYS.GALLERY, list);
     if (isSupabaseConfigured && supabase) {
       try {
-        const { error } = await supabase.from('gallery').upsert([item]);
+        const payload = sanitizeGalleryForSupabase(item);
+        const { error } = await supabase.from('gallery').upsert([payload]);
         if (error) return { success: false, error: error.message };
       } catch (err: any) {
         return { success: false, error: err?.message };
@@ -1006,9 +1233,42 @@ export const Store = {
           };
         }
         if (data?.user) {
+          const userEmail = (data.user.email || adminEmail).toLowerCase();
+          
+          // Verify role from database-managed admin_users table or auth app_metadata
+          const appRole = (data.user.app_metadata?.role as string) || '';
+          const isAppAdmin = appRole === 'admin' || appRole === 'super_admin';
+
+          const { data: adminRecord } = await supabase
+            .from('admin_users')
+            .select('role')
+            .or(`user_id.eq.${data.user.id},email.eq.${userEmail}`)
+            .maybeSingle();
+
+          const activeRole = adminRecord?.role || (isAppAdmin ? appRole : null);
+
+          if (!activeRole || (activeRole !== 'admin' && activeRole !== 'super_admin')) {
+            await supabase.auth.signOut();
+            return {
+              success: false,
+              error: `Access Denied: The account "${userEmail}" is authenticated, but is not authorized in the showroom admin allowlist. Please run the migration SQL or contact the showroom owner.`
+            };
+          }
+
+          // Link user_id if not already mapped
+          try {
+            await supabase
+              .from('admin_users')
+              .update({ user_id: data.user.id })
+              .eq('email', userEmail);
+          } catch {
+            // non-fatal
+          }
+
           setLocal(STORAGE_KEYS.ADMIN_AUTH, { 
             authenticated: true, 
-            email: data.user.email || adminEmail,
+            email: userEmail,
+            role: activeRole,
             provider: 'Supabase Authentication',
             timestamp: Date.now() 
           });

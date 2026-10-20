@@ -51,7 +51,9 @@ import {
   VideoItem 
 } from '../types';
 import { ImageDropzone } from '../components/ImageDropzone';
+import { MultiImageDropzone } from '../components/MultiImageDropzone';
 import { resolveSafeImageUrl } from '../components/SafeImage';
+import { checkMediaBucketStatus } from '../services/storage';
 
 interface AdminPortalProps {
   onNavigateHome: () => void;
@@ -88,8 +90,99 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
-  const [newHeroVideoInput, setNewHeroVideoInput] = useState('');
   const [isSyncingCloud, setIsSyncingCloud] = useState(false);
+  const [newHeroVideoInput, setNewHeroVideoInput] = useState('');
+  const [bucketStatus, setBucketStatus] = useState<{ checked: boolean; exists: boolean; error?: string }>({ checked: false, exists: false });
+
+  // Dedicated local form states for smooth editing without keystroke network storms
+  const [brandingForm, setBrandingForm] = useState({
+    brand_name: settings.brand_name || '',
+    tagline: settings.tagline || '',
+    logo_url: settings.logo_url || '',
+    whatsapp: settings.whatsapp || '',
+    phone: settings.phone || '',
+    address: settings.address || ''
+  });
+  const [isSavingBranding, setIsSavingBranding] = useState(false);
+
+  const [heroForm, setHeroForm] = useState({
+    hero_heading: settings.hero_heading || '',
+    hero_subheading: settings.hero_subheading || '',
+    hero_video_url: settings.hero_video_url || '',
+    hero_video_overlay: settings.hero_video_overlay ?? 0.38,
+    hero_videos: settings.hero_videos || [],
+    hero_images: settings.hero_images || [],
+    hero_interval_seconds: settings.hero_interval_seconds ?? 6
+  });
+  const [isSavingHero, setIsSavingHero] = useState(false);
+
+  const [businessForm, setBusinessForm] = useState({
+    brand_name: settings.brand_name || '',
+    tagline: settings.tagline || '',
+    whatsapp: settings.whatsapp || '',
+    phone: settings.phone || '',
+    email: settings.email || '',
+    opening_hours: settings.opening_hours || '',
+    address: settings.address || '',
+    google_maps_url: settings.google_maps_url || '',
+    instagram_url: settings.instagram_url || '',
+    facebook_url: settings.facebook_url || ''
+  });
+  const [isSavingBusiness, setIsSavingBusiness] = useState(false);
+
+  const [seoForm, setSeoForm] = useState({
+    seo_title: settings.seo_title || '',
+    seo_description: settings.seo_description || '',
+    seo_keywords: settings.seo_keywords || '',
+    footer_description: settings.footer_description || '',
+    copyright_text: settings.copyright_text || ''
+  });
+  const [isSavingSeo, setIsSavingSeo] = useState(false);
+
+  React.useEffect(() => {
+    setBrandingForm({
+      brand_name: settings.brand_name || '',
+      tagline: settings.tagline || '',
+      logo_url: settings.logo_url || '',
+      whatsapp: settings.whatsapp || '',
+      phone: settings.phone || '',
+      address: settings.address || ''
+    });
+    setHeroForm({
+      hero_heading: settings.hero_heading || '',
+      hero_subheading: settings.hero_subheading || '',
+      hero_video_url: settings.hero_video_url || '',
+      hero_video_overlay: settings.hero_video_overlay ?? 0.38,
+      hero_videos: settings.hero_videos || [],
+      hero_images: settings.hero_images || [],
+      hero_interval_seconds: settings.hero_interval_seconds ?? 6
+    });
+    setBusinessForm({
+      brand_name: settings.brand_name || '',
+      tagline: settings.tagline || '',
+      whatsapp: settings.whatsapp || '',
+      phone: settings.phone || '',
+      email: settings.email || '',
+      opening_hours: settings.opening_hours || '',
+      address: settings.address || '',
+      google_maps_url: settings.google_maps_url || '',
+      instagram_url: settings.instagram_url || '',
+      facebook_url: settings.facebook_url || ''
+    });
+    setSeoForm({
+      seo_title: settings.seo_title || '',
+      seo_description: settings.seo_description || '',
+      seo_keywords: settings.seo_keywords || '',
+      footer_description: settings.footer_description || '',
+      copyright_text: settings.copyright_text || ''
+    });
+  }, [settings]);
+
+  React.useEffect(() => {
+    if (activeTab === 'media' || activeTab === 'settings') {
+      checkMediaBucketStatus().then(res => setBucketStatus({ checked: true, exists: res.exists, error: res.error }));
+    }
+  }, [activeTab]);
 
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
     setToastMessage(msg);
@@ -120,6 +213,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
     name: '',
     category_id: '',
     main_image: '',
+    images: [] as string[],
     material: '',
     dimensions: '',
     finish: '',
@@ -267,6 +361,50 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
     }
   };
 
+  const handleSaveBranding = async () => {
+    setIsSavingBranding(true);
+    const res = await Store.updateSettings(brandingForm);
+    setIsSavingBranding(false);
+    if (res.success) {
+      showToast('Branding changes saved to Supabase cloud!', 'success');
+    } else {
+      showToast(`Cloud sync error: ${res.error}`, 'error');
+    }
+  };
+
+  const handleSaveHero = async () => {
+    setIsSavingHero(true);
+    const res = await Store.updateSettings(heroForm);
+    setIsSavingHero(false);
+    if (res.success) {
+      showToast('Homepage visuals & slides saved to Supabase cloud!', 'success');
+    } else {
+      showToast(`Cloud sync error: ${res.error}`, 'error');
+    }
+  };
+
+  const handleSaveBusiness = async () => {
+    setIsSavingBusiness(true);
+    const res = await Store.updateSettings(businessForm);
+    setIsSavingBusiness(false);
+    if (res.success) {
+      showToast('Business information saved to Supabase cloud!', 'success');
+    } else {
+      showToast(`Cloud sync error: ${res.error}`, 'error');
+    }
+  };
+
+  const handleSaveSeo = async () => {
+    setIsSavingSeo(true);
+    const res = await Store.updateSettings(seoForm);
+    setIsSavingSeo(false);
+    if (res.success) {
+      showToast('SEO settings saved to Supabase cloud!', 'success');
+    } else {
+      showToast(`Cloud sync error: ${res.error}`, 'error');
+    }
+  };
+
   // Video Handlers
   const handleOpenNewVideo = () => {
     setEditingVideo(null);
@@ -332,6 +470,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
       name: '',
       category_id: store.categories[0]?.id || 'living-room',
       main_image: '/images/hero_luxury_living_1791186963111.jpg',
+      images: ['/images/hero_luxury_living_1791186963111.jpg'],
       material: 'Solid Seasoned Sheesham Wood (Tahli)',
       dimensions: 'Custom dimensions tailored to your space',
       finish: 'Matte Woodgrain Protective Lacquer',
@@ -345,10 +484,13 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
 
   const handleEditProduct = (prod: Product) => {
     setEditingProduct(prod);
+    const mainImg = prod.main_image || '/images/hero_luxury_living_1791186963111.jpg';
+    const allImgs = Array.isArray(prod.images) && prod.images.length > 0 ? prod.images : [mainImg];
     setProdForm({
       name: prod.name,
       category_id: prod.category_id,
-      main_image: prod.main_image || '/images/hero_luxury_living_1791186963111.jpg',
+      main_image: mainImg,
+      images: allImgs,
       material: prod.material || '',
       dimensions: prod.dimensions || '',
       finish: prod.finish || '',
@@ -369,6 +511,10 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
 
     const catId = prodForm.category_id || store.categories[0]?.id || 'living-room';
     const image = prodForm.main_image || '/images/hero_luxury_living_1791186963111.jpg';
+    const allImages = Array.isArray(prodForm.images) && prodForm.images.length > 0 ? [...prodForm.images] : [image];
+    if (!allImages.includes(image)) {
+      allImages.unshift(image);
+    }
 
     if (editingProduct) {
       const updated: Product = {
@@ -376,7 +522,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
         name: prodForm.name.trim(),
         category_id: catId,
         main_image: image,
-        images: (editingProduct.images && editingProduct.images.length > 0) ? editingProduct.images : [image],
+        images: allImages,
         material: prodForm.material || 'Solid Hardwood',
         dimensions: prodForm.dimensions || 'Custom Size',
         finish: prodForm.finish || 'Natural Protective Lacquer',
@@ -392,7 +538,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
       if (res.success) {
         showToast(`Saved "${updated.name}" to Supabase cloud!`, 'success');
       } else {
-        showToast(`Saved locally only. Cloud sync error: ${res.error}`, 'error');
+        showToast(`Saved locally only. Cloud sync: ${res.error}`, 'error');
       }
     } else {
       const slug = prodForm.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now().toString().slice(-4);
@@ -402,7 +548,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
         slug,
         category_id: catId,
         main_image: image,
-        images: [image],
+        images: allImages,
         material: prodForm.material || 'Solid Seasoned Sheesham Wood',
         dimensions: prodForm.dimensions || 'Custom Size Available',
         finish: prodForm.finish || 'Matte Woodgrain Protective Lacquer',
@@ -422,7 +568,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
       if (res.success) {
         showToast(`Added product "${newProd.name}" to Supabase cloud!`, 'success');
       } else {
-        showToast(`Added locally only. Cloud sync error: ${res.error}`, 'error');
+        showToast(`Added locally only. Cloud sync: ${res.error}`, 'error');
       }
     }
     setIsProductModalOpen(false);
@@ -733,20 +879,40 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
         showToast(`Category removed locally. Cloud sync: ${res.error}`, 'error');
       }
     } else if (type === 'gallery') {
-      await Store.deleteGalleryItem(id);
-      showToast('Gallery image removed');
+      const res = await Store.deleteGalleryItem(id);
+      if (res.success) {
+        showToast('Photo removed from Gallery', 'success');
+      } else {
+        showToast(`Removed locally. Cloud sync: ${res.error}`, 'error');
+      }
     } else if (type === 'service') {
-      await Store.deleteService(id);
-      showToast('Service removed');
+      const res = await Store.deleteService(id);
+      if (res.success) {
+        showToast('Service removed from database', 'success');
+      } else {
+        showToast(`Removed locally. Cloud sync: ${res.error}`, 'error');
+      }
     } else if (type === 'blog') {
-      await Store.deleteBlogPost(id);
-      showToast('Article removed');
+      const res = await Store.deleteBlogPost(id);
+      if (res.success) {
+        showToast('Article removed from database', 'success');
+      } else {
+        showToast(`Removed locally. Cloud sync: ${res.error}`, 'error');
+      }
     } else if (type === 'faq') {
-      await Store.deleteFAQ(id);
-      showToast('Question removed');
+      const res = await Store.deleteFAQ(id);
+      if (res.success) {
+        showToast('Question removed from database', 'success');
+      } else {
+        showToast(`Removed locally. Cloud sync: ${res.error}`, 'error');
+      }
     } else if (type === 'media') {
-      await Store.deleteMedia(id);
-      showToast('Media file removed');
+      const res = await Store.deleteMedia(id);
+      if (res.success) {
+        showToast('Media file removed from database', 'success');
+      } else {
+        showToast(`Removed locally. Cloud sync: ${res.error}`, 'error');
+      }
     } else if (type === 'lead') {
       const res = await Store.deleteLead(id);
       if (res.success) {
@@ -755,11 +921,15 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
         showToast(`Inquiry removed locally. Cloud: ${res.error}`, 'error');
       }
     } else if (type === 'review') {
-      await Store.deleteReview(id);
-      showToast('Review removed');
+      const res = await Store.deleteReview(id);
+      if (res.success) {
+        showToast('Review removed from database', 'success');
+      } else {
+        showToast(`Removed locally. Cloud sync: ${res.error}`, 'error');
+      }
     } else if (type === 'video') {
       Store.deleteVideo(id);
-      showToast('Video removed');
+      showToast('Video removed from showroom');
     }
     setDeleteConfirm(null);
   };
@@ -854,6 +1024,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
     { id: 'hero', label: 'Homepage', icon: <Sparkles className="w-4 h-4" /> },
     { id: 'products', label: 'Products', icon: <Package className="w-4 h-4" />, count: store.products.length },
     { id: 'categories', label: 'Categories', icon: <FolderTree className="w-4 h-4" />, count: store.categories.length },
+    { id: 'gallery', label: 'Gallery', icon: <Camera className="w-4 h-4" />, count: store.gallery.length },
     { id: 'services', label: 'Services', icon: <Briefcase className="w-4 h-4" />, count: store.services.length },
     { id: 'videos', label: 'Videos', icon: <Film className="w-4 h-4" />, count: store.videos.length },
     { id: 'reviews', label: 'Reviews', icon: <Star className="w-4 h-4" />, count: store.reviews.length },
@@ -1209,7 +1380,10 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                   </div>
                 ) : (
                   filteredProducts.map(prod => {
-                    const cat = store.categories.find(c => c.id === prod.category_id);
+                    const cat = store.categories.find(c => 
+                      (prod.category_id && c.id && c.id.toLowerCase() === prod.category_id.toLowerCase()) ||
+                      (prod.category_id && c.slug && c.slug.toLowerCase() === prod.category_id.toLowerCase())
+                    );
                     return (
                       <div key={prod.id} className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-[#2A1D16] transition-colors">
                         <div className="flex items-center gap-4">
@@ -1294,7 +1468,16 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
                 {store.categories.map(cat => {
-                  const prodCount = store.products.filter(p => p.category_id === cat.id).length;
+                  const linkedProducts = store.products.filter(p => 
+                    (p.category_id && cat.id && p.category_id.toLowerCase() === cat.id.toLowerCase()) ||
+                    (p.category_id && cat.slug && p.category_id.toLowerCase() === cat.slug.toLowerCase())
+                  );
+                  const prodCount = linkedProducts.length;
+                  const catSubcategories = store.subcategories.filter(s => 
+                    (s.category_id && cat.id && s.category_id.toLowerCase() === cat.id.toLowerCase()) ||
+                    (s.category_id && cat.slug && s.category_id.toLowerCase() === cat.slug.toLowerCase())
+                  );
+
                   return (
                     <div key={cat.id} className="bg-[#221812] border border-[#443227] rounded-3xl overflow-hidden flex flex-col justify-between">
                       <div>
@@ -1309,41 +1492,151 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                             /{cat.slug}
                           </span>
                           <span className="absolute top-2 right-2 bg-[#768A7D] text-white text-[10px] px-2 py-0.5 rounded-lg font-bold">
-                            {prodCount} items
+                            {prodCount} {prodCount === 1 ? 'item' : 'items'}
                           </span>
                         </div>
-                        <div className="p-5 space-y-1.5">
+                        <div className="p-5 space-y-2">
                           <h4 className="font-serif text-lg font-bold text-[#FAF6F0]">{cat.name}</h4>
                           <p className="text-xs text-stone-400 line-clamp-2">{cat.description}</p>
+                          
+                          {/* Related Subcategories */}
+                          {catSubcategories.length > 0 && (
+                            <div className="pt-2 border-t border-[#443227]/40">
+                              <span className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider block mb-1">
+                                Subcategories:
+                              </span>
+                              <div className="flex flex-wrap gap-1.5">
+                                {catSubcategories.map(s => (
+                                  <span key={s.id} className="text-[10px] px-2 py-0.5 bg-[#15100D] border border-[#443227] rounded-md text-stone-300">
+                                    {s.name}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
 
-                      <div className="p-4 border-t border-[#443227] flex items-center justify-end gap-2">
+                      <div className="p-4 border-t border-[#443227] flex items-center justify-between gap-2">
                         <button
-                          onClick={() => handleEditCategory(cat)}
-                          className="px-3.5 py-1.5 bg-[#2A1D16] hover:bg-[#38271E] border border-[#443227] text-stone-200 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                          type="button"
+                          onClick={() => {
+                            setSelectedCategoryFilter(cat.id);
+                            setActiveTab('products');
+                          }}
+                          className="px-3 py-1.5 bg-[#15100D] hover:bg-[#2A1D16] border border-[#443227] text-stone-300 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-colors"
+                          title="View products in this category"
                         >
-                          <Edit3 className="w-3.5 h-3.5 text-[#C5A880]" />
-                          <span>Edit</span>
+                          <Package className="w-3.5 h-3.5 text-[#C5A880]" />
+                          <span>Products ({prodCount})</span>
                         </button>
 
-                        <button
-                          onClick={() => {
-                            setDeleteConfirm({
-                              type: 'category',
-                              id: cat.id,
-                              title: cat.name
-                            });
-                          }}
-                          className="p-2 text-stone-400 hover:text-red-400 hover:bg-red-950/40 rounded-xl transition-colors"
-                          title="Delete category"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleEditCategory(cat)}
+                            className="px-3 py-1.5 bg-[#2A1D16] hover:bg-[#38271E] border border-[#443227] text-stone-200 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                          >
+                            <Edit3 className="w-3.5 h-3.5 text-[#C5A880]" />
+                            <span>Edit</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDeleteConfirm({
+                                type: 'category',
+                                id: cat.id,
+                                title: cat.name
+                              });
+                            }}
+                            className="p-1.5 text-stone-400 hover:text-red-400 hover:bg-red-950/40 rounded-xl transition-colors"
+                            title="Delete category"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   );
                 })}
+              </div>
+            </div>
+          )}
+
+          {/* TAB: GALLERY */}
+          {activeTab === 'gallery' && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="font-serif text-3xl sm:text-4xl font-bold text-[#FAF6F0]">
+                    Showroom Gallery ({store.gallery.length})
+                  </h2>
+                  <p className="text-xs sm:text-sm text-stone-300 mt-1">
+                    Finished interior projects, living room spaces, and custom showroom installations in Rawalpindi & Islamabad.
+                  </p>
+                </div>
+
+                <button
+                  onClick={handleOpenNewGallery}
+                  className="px-4 py-2.5 bg-[#768A7D] hover:bg-[#5C7367] text-white text-xs font-semibold rounded-xl flex items-center gap-2 transition-colors shadow-md shrink-0"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Add Photo to Gallery</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
+                {store.gallery.map(item => (
+                  <div key={item.id} className="bg-[#221812] border border-[#443227] rounded-3xl overflow-hidden flex flex-col justify-between">
+                    <div>
+                      <div className="aspect-[4/3] w-full overflow-hidden bg-[#15100D] relative">
+                        <img 
+                          src={resolveSafeImageUrl(item.image)} 
+                          alt={item.title} 
+                          onError={(e) => { (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=600&q=80'; }}
+                          className="w-full h-full object-cover" 
+                        />
+                        <span className="absolute top-2 left-2 bg-[#C5A880] text-black text-[10px] font-bold px-2 py-0.5 rounded shadow">
+                          {item.category_name || item.category || 'Living Room'}
+                        </span>
+                        {item.featured && (
+                          <span className="absolute top-2 right-2 bg-emerald-700 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow">
+                            Featured
+                          </span>
+                        )}
+                      </div>
+                      <div className="p-5 space-y-1.5">
+                        <h4 className="font-serif text-lg font-bold text-[#FAF6F0]">{item.title}</h4>
+                        <p className="text-xs text-stone-300 line-clamp-2">{item.description}</p>
+                      </div>
+                    </div>
+
+                    <div className="p-4 border-t border-[#443227] flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => handleEditGallery(item)}
+                        className="px-3.5 py-1.5 bg-[#2A1D16] hover:bg-[#38271E] border border-[#443227] text-stone-200 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                      >
+                        <Edit3 className="w-3.5 h-3.5 text-[#C5A880]" />
+                        <span>Edit</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setDeleteConfirm({
+                            type: 'gallery',
+                            id: item.id,
+                            title: item.title
+                          });
+                        }}
+                        className="p-2 text-stone-400 hover:text-red-400 hover:bg-red-950/40 rounded-xl transition-colors"
+                        title="Delete gallery photo"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
@@ -1544,9 +1837,38 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                   Media Library ({store.media.length})
                 </h2>
                 <p className="text-xs sm:text-sm text-stone-300 mt-1">
-                  Drag and drop files to upload images, videos, or thumbnails. Click "Copy URL" to use any asset.
+                  Upload images, videos, or furniture photos directly to Supabase Storage. Click "Copy URL" to use any asset across products, categories, or homepage.
                 </p>
               </div>
+
+              {/* Bucket Status Ribbon */}
+              {bucketStatus.checked && !bucketStatus.exists && (
+                <div className="p-4 bg-amber-950/40 border border-amber-800/80 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-2.5">
+                    <AlertCircle className="w-5 h-5 text-amber-400 shrink-0" />
+                    <div>
+                      <p className="font-semibold text-amber-200">Supabase Storage 'media' Bucket Notice</p>
+                      <p className="text-stone-300 text-[11px] mt-0.5">
+                        Storage bucket <code className="text-amber-300 font-mono">media</code> has not been created yet in project <code className="text-[#C5A880] font-mono">qhqahlykekweryenrnli</code>. Run Section E of <code className="text-[#DFC06A] font-mono">supabase/schema.sql</code> in your Supabase SQL Editor to enable cloud storage. Uploads are currently saved with high-performance local encoding.
+                      </p>
+                    </div>
+                  </div>
+                  <span className="px-2.5 py-1 bg-amber-900/60 text-amber-300 rounded-lg font-mono text-[10px] shrink-0 font-bold">
+                    PENDING SQL SETUP
+                  </span>
+                </div>
+              )}
+              {bucketStatus.checked && bucketStatus.exists && (
+                <div className="p-3.5 bg-emerald-950/40 border border-emerald-800/60 rounded-2xl flex items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-2 text-emerald-300">
+                    <Check className="w-4 h-4 text-emerald-400" />
+                    <span>Supabase Storage Public Bucket <strong className="font-mono text-white">media</strong> is Active</span>
+                  </div>
+                  <span className="px-2 py-0.5 bg-emerald-900/60 text-emerald-300 rounded-full font-mono text-[10px] font-bold">
+                    CONNECTED
+                  </span>
+                </div>
+              )}
 
               {/* Upload Dropzone */}
               <div className="bg-[#221812] border border-[#443227] rounded-3xl p-6 sm:p-8">
@@ -1701,14 +2023,14 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                   <div className="p-6 bg-[#15100D] border border-[#443227] rounded-2xl flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <img 
-                        src={resolveSafeImageUrl(settings.logo_url) || '/wood_care_logo.svg'} 
+                        src={resolveSafeImageUrl(brandingForm.logo_url) || '/wood_care_logo.svg'} 
                         alt="Logo" 
                         onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/wood_care_logo.svg'; }}
                         className="h-14 w-auto object-contain rounded-full border border-[#768A7D]" 
                       />
                       <div className="flex flex-col">
                         <span className="font-serif text-xl sm:text-2xl font-bold tracking-wider text-[#FAF6F0] uppercase leading-none">
-                          {settings.brand_name || 'Wood Care Furniture'}
+                          {brandingForm.brand_name || 'Wood Care Furniture'}
                         </span>
                         <span className="text-[10px] uppercase tracking-[0.24em] text-[#C5A880] font-semibold mt-1">
                           Rawalpindi · Islamabad
@@ -1721,10 +2043,10 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                 {/* Drag and Drop Logo Upload */}
                 <div className="pt-4 border-t border-[#443227]">
                   <ImageDropzone
-                    value={settings.logo_url}
+                    value={brandingForm.logo_url}
                     onChange={(url) => {
-                      updateSettings({ logo_url: url || '/wood_care_logo.svg' });
-                      showToast('Logo updated!');
+                      setBrandingForm(prev => ({ ...prev, logo_url: url || '/wood_care_logo.svg' }));
+                      showToast('Logo updated in form! Click "Save Branding Changes" to persist in cloud.');
                     }}
                     label="Upload / Drag & Drop New Logo"
                     helperText="Drop your brand logo here (PNG, SVG, JPG)"
@@ -1737,8 +2059,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                     <label className="block text-stone-200 font-medium mb-1">Brand Name</label>
                     <input
                       type="text"
-                      value={settings.brand_name}
-                      onChange={(e) => updateSettings({ brand_name: e.target.value })}
+                      value={brandingForm.brand_name}
+                      onChange={(e) => setBrandingForm({ ...brandingForm, brand_name: e.target.value })}
                       className="w-full p-3 bg-[#15100D] border border-[#443227] rounded-xl text-stone-200 focus:outline-none focus:border-[#768A7D]"
                     />
                   </div>
@@ -1747,8 +2069,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                     <label className="block text-stone-200 font-medium mb-1">Tagline</label>
                     <input
                       type="text"
-                      value={settings.tagline}
-                      onChange={(e) => updateSettings({ tagline: e.target.value })}
+                      value={brandingForm.tagline}
+                      onChange={(e) => setBrandingForm({ ...brandingForm, tagline: e.target.value })}
                       className="w-full p-3 bg-[#15100D] border border-[#443227] rounded-xl text-stone-200 focus:outline-none focus:border-[#768A7D]"
                     />
                   </div>
@@ -1757,8 +2079,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                     <label className="block text-stone-200 font-medium mb-1">WhatsApp Number</label>
                     <input
                       type="text"
-                      value={settings.whatsapp}
-                      onChange={(e) => updateSettings({ whatsapp: e.target.value })}
+                      value={brandingForm.whatsapp}
+                      onChange={(e) => setBrandingForm({ ...brandingForm, whatsapp: e.target.value })}
                       className="w-full p-3 bg-[#15100D] border border-[#443227] rounded-xl text-stone-200 focus:outline-none focus:border-[#768A7D]"
                     />
                   </div>
@@ -1767,8 +2089,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                     <label className="block text-stone-200 font-medium mb-1">Phone Number</label>
                     <input
                       type="text"
-                      value={settings.phone}
-                      onChange={(e) => updateSettings({ phone: e.target.value })}
+                      value={brandingForm.phone}
+                      onChange={(e) => setBrandingForm({ ...brandingForm, phone: e.target.value })}
                       className="w-full p-3 bg-[#15100D] border border-[#443227] rounded-xl text-stone-200 focus:outline-none focus:border-[#768A7D]"
                     />
                   </div>
@@ -1778,10 +2100,23 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                   <label className="block text-stone-200 font-medium mb-1">Showroom Address</label>
                   <input
                     type="text"
-                    value={settings.address}
-                    onChange={(e) => updateSettings({ address: e.target.value })}
+                    value={brandingForm.address}
+                    onChange={(e) => setBrandingForm({ ...brandingForm, address: e.target.value })}
                     className="w-full p-3 bg-[#15100D] border border-[#443227] rounded-xl text-stone-200 focus:outline-none focus:border-[#768A7D]"
                   />
+                </div>
+
+                {/* Save Branding Button */}
+                <div className="pt-4 border-t border-[#443227] flex justify-end">
+                  <button
+                    type="button"
+                    disabled={isSavingBranding}
+                    onClick={handleSaveBranding}
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-[#768A7D] hover:bg-[#5C7367] text-white rounded-xl font-semibold shadow-md text-xs sm:text-sm transition-colors disabled:opacity-50"
+                  >
+                    {isSavingBranding ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    <span>{isSavingBranding ? 'Saving...' : 'Save Branding Changes'}</span>
+                  </button>
                 </div>
               </div>
             </div>
@@ -1831,11 +2166,11 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                         type="button"
                         onClick={() => {
                           if (!newHeroVideoInput.trim()) return;
-                          const currentVideos = settings.hero_videos || (settings.hero_video_url ? [settings.hero_video_url] : []);
+                          const currentVideos = heroForm.hero_videos || [];
                           const updated = [...currentVideos, newHeroVideoInput.trim()];
-                          updateSettings({ hero_videos: updated, hero_video_url: updated[0] });
+                          setHeroForm(prev => ({ ...prev, hero_videos: updated, hero_video_url: updated[0] }));
                           setNewHeroVideoInput('');
-                          showToast('Video added to Hero slideshow!');
+                          showToast('Video added to form! Click "Save Homepage & Visual Settings" to persist.');
                         }}
                         className="px-4 py-2.5 bg-[#768A7D] hover:bg-[#5C7367] text-white font-semibold rounded-xl text-xs flex items-center gap-1.5 shrink-0"
                       >
@@ -1851,7 +2186,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                       Configured Hero Slideshow Videos:
                     </label>
                     <div className="space-y-2">
-                      {(settings.hero_videos || (settings.hero_video_url ? [settings.hero_video_url] : [])).map((vUrl, idx) => (
+                      {(heroForm.hero_videos || []).map((vUrl, idx) => (
                         <div 
                           key={idx}
                           className="flex items-center justify-between gap-3 p-3 bg-[#15100D] border border-[#443227] rounded-xl text-xs"
@@ -1870,10 +2205,10 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                               <button
                                 type="button"
                                 onClick={() => {
-                                  const list = [...(settings.hero_videos || [])];
+                                  const list = [...(heroForm.hero_videos || [])];
                                   const [moved] = list.splice(idx, 1);
                                   list.splice(idx - 1, 0, moved);
-                                  updateSettings({ hero_videos: list, hero_video_url: list[0] });
+                                  setHeroForm(prev => ({ ...prev, hero_videos: list, hero_video_url: list[0] }));
                                   showToast('Reordered video');
                                 }}
                                 className="px-2 py-1 bg-[#221812] hover:bg-[#31231A] text-stone-300 rounded text-[10px]"
@@ -1883,14 +2218,14 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                               </button>
                             )}
 
-                            {idx < (settings.hero_videos?.length || 1) - 1 && (
+                            {idx < (heroForm.hero_videos?.length || 1) - 1 && (
                               <button
                                 type="button"
                                 onClick={() => {
-                                  const list = [...(settings.hero_videos || [])];
+                                  const list = [...(heroForm.hero_videos || [])];
                                   const [moved] = list.splice(idx, 1);
                                   list.splice(idx + 1, 0, moved);
-                                  updateSettings({ hero_videos: list, hero_video_url: list[0] });
+                                  setHeroForm(prev => ({ ...prev, hero_videos: list, hero_video_url: list[0] }));
                                   showToast('Reordered video');
                                 }}
                                 className="px-2 py-1 bg-[#221812] hover:bg-[#31231A] text-stone-300 rounded text-[10px]"
@@ -1903,12 +2238,13 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                             <button
                               type="button"
                               onClick={() => {
-                                const list = (settings.hero_videos || []).filter((_, i) => i !== idx);
-                                updateSettings({ 
+                                const list = (heroForm.hero_videos || []).filter((_, i) => i !== idx);
+                                setHeroForm(prev => ({ 
+                                  ...prev, 
                                   hero_videos: list, 
                                   hero_video_url: list[0] || '' 
-                                });
-                                showToast('Removed video from slideshow');
+                                }));
+                                showToast('Removed video from list');
                               }}
                               className="p-1.5 text-stone-400 hover:text-red-400 rounded"
                               title="Delete from slideshow"
@@ -1933,10 +2269,10 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                             key={vid.id}
                             type="button"
                             onClick={() => {
-                              const currentList = settings.hero_videos || (settings.hero_video_url ? [settings.hero_video_url] : []);
+                              const currentList = heroForm.hero_videos || [];
                               if (!currentList.includes(vid.video_url)) {
                                 const updated = [...currentList, vid.video_url];
-                                updateSettings({ hero_videos: updated, hero_video_url: updated[0] });
+                                setHeroForm(prev => ({ ...prev, hero_videos: updated, hero_video_url: updated[0] }));
                                 showToast(`Added "${vid.title}" to slideshow`);
                               } else {
                                 showToast(`"${vid.title}" is already in slideshow`);
@@ -1959,7 +2295,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                         Hero Video Dark Overlay (Text Readability)
                       </label>
                       <span className="font-mono text-[#C5A880]">
-                        {Math.round((settings.hero_video_overlay ?? 0.38) * 100)}%
+                        {Math.round((heroForm.hero_video_overlay ?? 0.38) * 100)}%
                       </span>
                     </div>
                     <input
@@ -1967,8 +2303,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                       min="0.1"
                       max="0.8"
                       step="0.02"
-                      value={settings.hero_video_overlay ?? 0.38}
-                      onChange={(e) => updateSettings({ hero_video_overlay: parseFloat(e.target.value) })}
+                      value={heroForm.hero_video_overlay ?? 0.38}
+                      onChange={(e) => setHeroForm(prev => ({ ...prev, hero_video_overlay: parseFloat(e.target.value) }))}
                       className="w-full accent-[#C5A880] cursor-pointer"
                     />
                     <p className="text-[10px] text-stone-400 mt-1">
@@ -1983,9 +2319,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                     value=""
                     onChange={(url) => {
                       if (url) {
-                        const current = settings.hero_images || [];
-                        updateSettings({ hero_images: [...current, url] });
-                        showToast('Slide added to homepage!');
+                        const current = heroForm.hero_images || [];
+                        setHeroForm(prev => ({ ...prev, hero_images: [...current, url] }));
+                        showToast('Slide added to form! Click "Save Homepage & Visual Settings" to persist.');
                       }
                     }}
                     label="Add New Slide Image (Drag & Drop)"
@@ -1996,10 +2332,10 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                 {/* Current Slides */}
                 <div className="space-y-3 pt-4 border-t border-[#443227]">
                   <label className="block text-stone-300 font-semibold uppercase tracking-wider text-xs">
-                    Current Slide Images ({settings.hero_images?.length || 0})
+                    Current Slide Images ({heroForm.hero_images?.length || 0})
                   </label>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {(settings.hero_images || []).map((img, idx) => (
+                    {(heroForm.hero_images || []).map((img, idx) => (
                       <div key={idx} className="relative group rounded-2xl overflow-hidden aspect-[16/9] bg-[#15100D] border border-[#443227]">
                         <img 
                           src={resolveSafeImageUrl(img)} 
@@ -2010,9 +2346,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                         <button
                           type="button"
                           onClick={() => {
-                            const updated = (settings.hero_images || []).filter((_, i) => i !== idx);
-                            updateSettings({ hero_images: updated });
-                            showToast('Slide removed');
+                            const updated = (heroForm.hero_images || []).filter((_, i) => i !== idx);
+                            setHeroForm(prev => ({ ...prev, hero_images: updated }));
+                            showToast('Slide removed from list');
                           }}
                           className="absolute top-2 right-2 p-1.5 bg-red-600 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
                           title="Remove slide"
@@ -2044,10 +2380,10 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                         min="2"
                         max="30"
                         step="1"
-                        value={settings.hero_interval_seconds ?? 6}
+                        value={heroForm.hero_interval_seconds ?? 6}
                         onChange={(e) => {
                           const val = Math.max(2, Math.min(30, parseInt(e.target.value) || 6));
-                          updateSettings({ hero_interval_seconds: val });
+                          setHeroForm(prev => ({ ...prev, hero_interval_seconds: val }));
                         }}
                         className="w-20 p-2 bg-[#15100D] border border-[#443227] rounded-xl text-center font-mono text-sm text-[#DFC06A] focus:outline-none focus:border-[#768A7D]"
                       />
@@ -2062,8 +2398,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                     <label className="block text-stone-200 font-medium mb-1">Hero Heading</label>
                     <input
                       type="text"
-                      value={settings.hero_heading}
-                      onChange={(e) => updateSettings({ hero_heading: e.target.value })}
+                      value={heroForm.hero_heading}
+                      onChange={(e) => setHeroForm(prev => ({ ...prev, hero_heading: e.target.value }))}
                       className="w-full p-3 bg-[#15100D] border border-[#443227] rounded-xl font-serif text-base text-stone-200 focus:outline-none focus:border-[#768A7D]"
                     />
                   </div>
@@ -2072,11 +2408,24 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                     <label className="block text-stone-200 font-medium mb-1">Hero Subheading</label>
                     <textarea
                       rows={3}
-                      value={settings.hero_subheading}
-                      onChange={(e) => updateSettings({ hero_subheading: e.target.value })}
+                      value={heroForm.hero_subheading}
+                      onChange={(e) => setHeroForm(prev => ({ ...prev, hero_subheading: e.target.value }))}
                       className="w-full p-3 bg-[#15100D] border border-[#443227] rounded-xl text-stone-200 focus:outline-none focus:border-[#768A7D]"
                     />
                   </div>
+                </div>
+
+                {/* Save Hero Settings Button */}
+                <div className="pt-4 border-t border-[#443227] flex justify-end">
+                  <button
+                    type="button"
+                    disabled={isSavingHero}
+                    onClick={handleSaveHero}
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-[#768A7D] hover:bg-[#5C7367] text-white rounded-xl font-semibold shadow-md text-xs sm:text-sm transition-colors disabled:opacity-50"
+                  >
+                    {isSavingHero ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    <span>{isSavingHero ? 'Saving...' : 'Save Homepage & Visual Settings'}</span>
+                  </button>
                 </div>
               </div>
             </div>
@@ -2167,8 +2516,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                     <label className="block text-stone-200 font-medium mb-1">Company / Brand Name</label>
                     <input
                       type="text"
-                      value={settings.brand_name}
-                      onChange={(e) => updateSettings({ brand_name: e.target.value })}
+                      value={businessForm.brand_name}
+                      onChange={(e) => setBusinessForm({ ...businessForm, brand_name: e.target.value })}
                       className="w-full p-3 bg-[#15100D] border border-[#443227] rounded-xl text-stone-200 focus:outline-none focus:border-[#768A7D]"
                     />
                   </div>
@@ -2177,8 +2526,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                     <label className="block text-stone-200 font-medium mb-1">Tagline</label>
                     <input
                       type="text"
-                      value={settings.tagline}
-                      onChange={(e) => updateSettings({ tagline: e.target.value })}
+                      value={businessForm.tagline}
+                      onChange={(e) => setBusinessForm({ ...businessForm, tagline: e.target.value })}
                       className="w-full p-3 bg-[#15100D] border border-[#443227] rounded-xl text-stone-200 focus:outline-none focus:border-[#768A7D]"
                     />
                   </div>
@@ -2187,8 +2536,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                     <label className="block text-stone-200 font-medium mb-1">WhatsApp Consultation Number</label>
                     <input
                       type="text"
-                      value={settings.whatsapp}
-                      onChange={(e) => updateSettings({ whatsapp: e.target.value })}
+                      value={businessForm.whatsapp}
+                      onChange={(e) => setBusinessForm({ ...businessForm, whatsapp: e.target.value })}
                       className="w-full p-3 bg-[#15100D] border border-[#443227] rounded-xl text-stone-200 focus:outline-none focus:border-[#768A7D]"
                     />
                   </div>
@@ -2197,8 +2546,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                     <label className="block text-stone-200 font-medium mb-1">Landline / Direct Phone</label>
                     <input
                       type="text"
-                      value={settings.phone}
-                      onChange={(e) => updateSettings({ phone: e.target.value })}
+                      value={businessForm.phone}
+                      onChange={(e) => setBusinessForm({ ...businessForm, phone: e.target.value })}
                       className="w-full p-3 bg-[#15100D] border border-[#443227] rounded-xl text-stone-200 focus:outline-none focus:border-[#768A7D]"
                     />
                   </div>
@@ -2207,8 +2556,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                     <label className="block text-stone-200 font-medium mb-1">Admin Email Address</label>
                     <input
                       type="email"
-                      value={settings.email}
-                      onChange={(e) => updateSettings({ email: e.target.value })}
+                      value={businessForm.email}
+                      onChange={(e) => setBusinessForm({ ...businessForm, email: e.target.value })}
                       className="w-full p-3 bg-[#15100D] border border-[#443227] rounded-xl text-stone-200 focus:outline-none focus:border-[#768A7D]"
                     />
                   </div>
@@ -2217,8 +2566,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                     <label className="block text-stone-200 font-medium mb-1">Opening Hours</label>
                     <input
                       type="text"
-                      value={settings.opening_hours}
-                      onChange={(e) => updateSettings({ opening_hours: e.target.value })}
+                      value={businessForm.opening_hours}
+                      onChange={(e) => setBusinessForm({ ...businessForm, opening_hours: e.target.value })}
                       className="w-full p-3 bg-[#15100D] border border-[#443227] rounded-xl text-stone-200 focus:outline-none focus:border-[#768A7D]"
                     />
                   </div>
@@ -2228,8 +2577,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                   <label className="block text-stone-200 font-medium mb-1">Workshop & Showroom Physical Address</label>
                   <input
                     type="text"
-                    value={settings.address}
-                    onChange={(e) => updateSettings({ address: e.target.value })}
+                    value={businessForm.address}
+                    onChange={(e) => setBusinessForm({ ...businessForm, address: e.target.value })}
                     className="w-full p-3 bg-[#15100D] border border-[#443227] rounded-xl text-stone-200 focus:outline-none focus:border-[#768A7D]"
                   />
                 </div>
@@ -2239,8 +2588,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                     <label className="block text-stone-200 font-medium mb-1">Google Maps Link</label>
                     <input
                       type="text"
-                      value={settings.google_maps_url}
-                      onChange={(e) => updateSettings({ google_maps_url: e.target.value })}
+                      value={businessForm.google_maps_url}
+                      onChange={(e) => setBusinessForm({ ...businessForm, google_maps_url: e.target.value })}
                       className="w-full p-3 bg-[#15100D] border border-[#443227] rounded-xl text-stone-200 focus:outline-none focus:border-[#768A7D]"
                     />
                   </div>
@@ -2248,8 +2597,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                     <label className="block text-stone-200 font-medium mb-1">Instagram URL</label>
                     <input
                       type="text"
-                      value={settings.instagram_url}
-                      onChange={(e) => updateSettings({ instagram_url: e.target.value })}
+                      value={businessForm.instagram_url}
+                      onChange={(e) => setBusinessForm({ ...businessForm, instagram_url: e.target.value })}
                       className="w-full p-3 bg-[#15100D] border border-[#443227] rounded-xl text-stone-200 focus:outline-none focus:border-[#768A7D]"
                     />
                   </div>
@@ -2258,18 +2607,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                 <div className="pt-4 border-t border-[#443227] flex justify-end">
                   <button
                     type="button"
-                    onClick={async () => {
-                      const res = await Store.updateSettings(settings);
-                      if (res.success) {
-                        showToast('Business information saved to Supabase cloud!', 'success');
-                      } else {
-                        showToast(`Saved locally only. Cloud sync error: ${res.error}`, 'error');
-                      }
-                    }}
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-[#768A7D] hover:bg-[#5C7367] text-white rounded-xl font-semibold shadow-md"
+                    disabled={isSavingBusiness}
+                    onClick={handleSaveBusiness}
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-[#768A7D] hover:bg-[#5C7367] text-white rounded-xl font-semibold shadow-md text-xs sm:text-sm transition-colors disabled:opacity-50"
                   >
-                    <Save className="w-4 h-4" />
-                    <span>Save Business Information</span>
+                    {isSavingBusiness ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    <span>{isSavingBusiness ? 'Saving...' : 'Save Business Information'}</span>
                   </button>
                 </div>
               </div>
@@ -2308,8 +2651,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                   <label className="block text-stone-200 font-medium mb-1">Global SEO Title</label>
                   <input
                     type="text"
-                    value={settings.seo_title}
-                    onChange={(e) => updateSettings({ seo_title: e.target.value })}
+                    value={seoForm.seo_title}
+                    onChange={(e) => setSeoForm({ ...seoForm, seo_title: e.target.value })}
                     className="w-full p-3 bg-[#15100D] border border-[#443227] rounded-xl text-stone-200 focus:outline-none focus:border-[#768A7D]"
                   />
                 </div>
@@ -2318,8 +2661,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                   <label className="block text-stone-200 font-medium mb-1">Global Meta Description</label>
                   <textarea
                     rows={3}
-                    value={settings.seo_description}
-                    onChange={(e) => updateSettings({ seo_description: e.target.value })}
+                    value={seoForm.seo_description}
+                    onChange={(e) => setSeoForm({ ...seoForm, seo_description: e.target.value })}
                     className="w-full p-3 bg-[#15100D] border border-[#443227] rounded-xl text-stone-200 focus:outline-none focus:border-[#768A7D]"
                   />
                 </div>
@@ -2328,8 +2671,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                   <label className="block text-stone-200 font-medium mb-1">Target Keyword Mapping</label>
                   <input
                     type="text"
-                    value={settings.seo_keywords}
-                    onChange={(e) => updateSettings({ seo_keywords: e.target.value })}
+                    value={seoForm.seo_keywords}
+                    onChange={(e) => setSeoForm({ ...seoForm, seo_keywords: e.target.value })}
                     className="w-full p-3 bg-[#15100D] border border-[#443227] rounded-xl text-stone-200 focus:outline-none focus:border-[#768A7D]"
                   />
                   <p className="text-[11px] text-stone-400 mt-1">
@@ -2340,18 +2683,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
                 <div className="pt-4 border-t border-[#443227] flex justify-end">
                   <button
                     type="button"
-                    onClick={async () => {
-                      const res = await Store.updateSettings(settings);
-                      if (res.success) {
-                        showToast('SEO configuration saved to Supabase cloud!', 'success');
-                      } else {
-                        showToast(`Saved locally only. Cloud sync error: ${res.error}`, 'error');
-                      }
-                    }}
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-[#768A7D] hover:bg-[#5C7367] text-white rounded-xl font-semibold shadow-md"
+                    disabled={isSavingSeo}
+                    onClick={handleSaveSeo}
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-[#768A7D] hover:bg-[#5C7367] text-white rounded-xl font-semibold shadow-md text-xs sm:text-sm transition-colors disabled:opacity-50"
                   >
-                    <Save className="w-4 h-4" />
-                    <span>Save SEO Configuration</span>
+                    {isSavingSeo ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    <span>{isSavingSeo ? 'Saving...' : 'Save SEO Configuration'}</span>
                   </button>
                 </div>
               </div>
@@ -2712,9 +3049,18 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
               <ImageDropzone
                 value={prodForm.main_image}
                 onChange={(url) => setProdForm({ ...prodForm, main_image: url })}
-                label="Product Main Photo (Drag & Drop)"
-                helperText="Drop furniture photo here or click to browse (JPG, PNG, WebP)"
+                label="Product Main Photo (Primary Display)"
+                helperText="Drop primary furniture photo here or click to browse (JPG, PNG, WebP)"
                 allowVideo={false}
+              />
+
+              {/* Multi-Image Gallery Dropzone for Product Detailing */}
+              <MultiImageDropzone
+                images={prodForm.images || []}
+                onChange={(imgs) => setProdForm({ ...prodForm, images: imgs })}
+                label="Additional Showcase & Joinery Photos"
+                helperText="Upload multiple photos from different angles, joinery details, or fabric swatches"
+                maxImages={8}
               />
 
               <div>
