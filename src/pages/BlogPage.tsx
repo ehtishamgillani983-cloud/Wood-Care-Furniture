@@ -21,13 +21,13 @@ export const BlogPage: React.FC<BlogPageProps> = ({ onNavigate, onOpenPost }) =>
           Home
         </button>
         <ChevronRight className="w-3.5 h-3.5 text-stone-500" />
-        <span className="font-semibold text-[#C5A880]">Furniture Guides & Articles</span>
+        <span className="font-semibold text-[#C5A880]">Guides & Articles</span>
       </nav>
 
       {/* Header - BIGGER & IN MIDDLE */}
       <div className="max-w-4xl mx-auto text-center space-y-4">
         <span className="text-xs sm:text-sm uppercase tracking-[0.28em] text-[#C5A880] font-bold block">
-          WOODWORKING JOURNAL
+          WOODWORKING KNOWLEDGE
         </span>
         <h1 className="font-serif text-4xl sm:text-6xl lg:text-7xl font-bold text-[#FAF6F0] tracking-tight">
           Guides & Articles

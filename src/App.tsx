@@ -143,10 +143,10 @@ export default function App() {
         description: 'Order bespoke custom furniture manufactured direct in our Shamsabad workshop. Bring your dimensions, Pinterest mood boards, or sketches for consultation.',
         canonicalPath: '/custom'
       });
-    } else if (currentPath === '/services') {
+    } else if (currentPath === '/services' || currentPath === '/our-services') {
       updatePageMeta({
-        title: `Workshop Direct Furniture Services & Commercial Wholesale | ${brand}`,
-        description: 'Bespoke residential furniture manufacturing, commercial wholesale supply, custom upholstery, and architectural woodwork across Rawalpindi & Islamabad.',
+        title: `Our Services: Workshop Direct | ${brand}`,
+        description: 'Comprehensive furniture manufacturing, architectural woodworking, custom upholstery, and commercial wholesale supply across Rawalpindi & Islamabad.',
         canonicalPath: '/services'
       });
     } else if (currentPath === '/about') {
@@ -161,8 +161,8 @@ export default function App() {
         description: 'Read verified testimonials and reviews from clients across Rawalpindi and Islamabad about our custom sofas, solid wood beds, and dining suites.',
         canonicalPath: '/reviews'
       });
-    } else if (currentPath.startsWith('/blog/')) {
-      const slug = currentPath.replace('/blog/', '');
+    } else if (currentPath.startsWith('/blog/') || currentPath.startsWith('/guides/')) {
+      const slug = currentPath.replace(/^\/(blog|guides)\//, '');
       const post = blogPosts.find(b => b.slug === slug || b.id === slug);
       if (post) {
         updatePageMeta({
@@ -177,13 +177,13 @@ export default function App() {
           canonicalPath: `/blog/${slug}`
         });
       }
-    } else if (currentPath === '/blog') {
+    } else if (currentPath === '/blog' || currentPath === '/guides' || currentPath === '/articles' || currentPath === '/guides-articles') {
       updatePageMeta({
-        title: `Woodworking Guides & Furniture Care Journal | ${brand}`,
+        title: `Guides & Articles | Woodworking Knowledge | ${brand}`,
         description: 'Expert recommendations on seasoned Sheesham wood, Burmese Teak, sofa ergonomics, fabric choices, and preserving fine furniture in Rawalpindi & Islamabad.',
         canonicalPath: '/blog'
       });
-    } else if (currentPath === '/faq') {
+    } else if (currentPath === '/faq' || currentPath === '/faqs') {
       updatePageMeta({
         title: `Frequently Asked Questions | Custom Furniture Rawalpindi | ${brand}`,
         description: 'Clear answers regarding solid timber seasoning, bespoke manufacturing, delivery across the Twin Cities, and showroom visits in Shamsabad.',
@@ -275,7 +275,7 @@ export default function App() {
       return <AboutPage onNavigate={navigate} />;
     }
 
-    if (currentPath === '/services') {
+    if (currentPath === '/services' || currentPath === '/our-services') {
       return <ServicesPage onNavigate={navigate} />;
     }
 
@@ -287,8 +287,8 @@ export default function App() {
       return <ReviewsPage onNavigate={navigate} />;
     }
 
-    if (currentPath.startsWith('/blog/')) {
-      const slug = currentPath.replace('/blog/', '');
+    if (currentPath.startsWith('/blog/') || currentPath.startsWith('/guides/')) {
+      const slug = currentPath.replace(/^\/(blog|guides)\//, '');
       return (
         <BlogPostPage 
           slug={slug} 
@@ -298,11 +298,11 @@ export default function App() {
       );
     }
 
-    if (currentPath === '/blog') {
+    if (currentPath === '/blog' || currentPath === '/guides' || currentPath === '/articles' || currentPath === '/guides-articles' || currentPath === '/guides-and-articles') {
       return <BlogPage onNavigate={navigate} onOpenPost={openPost} />;
     }
 
-    if (currentPath === '/faq') {
+    if (currentPath === '/faq' || currentPath === '/faqs') {
       return <FAQPage onNavigate={navigate} />;
     }
 

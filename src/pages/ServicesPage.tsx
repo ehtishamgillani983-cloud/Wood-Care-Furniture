@@ -29,19 +29,19 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({ onNavigate }) => {
           Home
         </button>
         <ChevronRight className="w-3.5 h-3.5 text-stone-500" />
-        <span className="font-semibold text-[#C5A880]">Our Services</span>
+        <span className="font-semibold text-[#C5A880]">Our Services: Workshop Direct</span>
       </nav>
 
       {/* Header - BIGGER & IN MIDDLE */}
       <div className="max-w-4xl mx-auto text-center space-y-4">
         <span className="text-xs sm:text-sm uppercase tracking-[0.28em] text-[#C5A880] font-bold block">
-          FACTORY DIRECT CAPABILITIES
+          WHAT WE OFFER
         </span>
         <h1 className="font-serif text-4xl sm:text-6xl lg:text-7xl font-bold text-[#FAF6F0] tracking-tight">
-          Bespoke Services
+          Our Services: Workshop Direct
         </h1>
         <p className="text-base sm:text-xl text-stone-300 max-w-2xl mx-auto leading-relaxed">
-          From custom residential drawing room furniture to commercial wholesale projects across Rawalpindi and Islamabad, our master artisans deliver generational woodwork.
+          Comprehensive furniture manufacturing, architectural woodworking, custom upholstery, and interior wood care in the Twin Cities. From bespoke residential drawing room suites to commercial wholesale projects across Rawalpindi & Islamabad, our master artisans deliver generational woodwork.
         </p>
       </div>
 

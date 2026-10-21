@@ -1,14 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { 
   ArrowRight, 
   MessageCircle, 
   MapPin, 
-  Check, 
   ChevronDown, 
   ChevronUp, 
   Phone,
-  Sparkles
+  Sparkles,
+  Layers,
+  ShieldCheck,
+  Hammer,
+  Truck,
+  Compass
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useStoreData } from '../hooks/useStore';
 import { ProductCard } from '../components/ProductCard';
 import { SafeImage, resolveSafeImageUrl } from '../components/SafeImage';
@@ -17,6 +24,12 @@ import {
   getCustomQuoteWhatsAppLink 
 } from '../utils/whatsapp';
 import { useScrollObserver } from '../hooks/useScrollObserver';
+import { MagneticButton } from '../components/MagneticButton';
+import { prefersReducedMotion } from '../utils/motion';
+
+if (typeof window !== 'undefined') {
+  gsap.registerPlugin(ScrollTrigger);
+}
 
 interface HomePageProps {
   onNavigate: (path: string) => void;
@@ -48,10 +61,10 @@ export const HomePage: React.FC<HomePageProps> = ({
   useScrollObserver([categories.length, products.length, reviews.length, blogPosts.length]);
 
   const [openFaq, setOpenFaq] = useState<string | null>(faqs[0]?.id || null);
+  const [selectedProductCategory, setSelectedProductCategory] = useState<string>('all');
 
   // Hero Media Slideshow Configuration
-  // Prioritizes settings.hero_images (admin-managed drag & drop uploads) or falls back to hero_videos
-  const heroVideoList = React.useMemo(() => {
+  const heroVideoList = useMemo(() => {
     if (settings.hero_images && settings.hero_images.length > 0) {
       return settings.hero_images;
     }
@@ -75,9 +88,9 @@ export const HomePage: React.FC<HomePageProps> = ({
   const [activeVideoIdx, setActiveVideoIdx] = useState(0);
 
   // Auto-advance hero slideshow using settings.hero_interval_seconds
-  React.useEffect(() => {
+  useEffect(() => {
     if (heroVideoList.length <= 1) return;
-    const intervalSec = Math.max(2, Math.min(30, Number(settings.hero_interval_seconds) || 6));
+    const intervalSec = Math.max(3, Math.min(30, Number(settings.hero_interval_seconds) || 7));
     const interval = setInterval(() => {
       setActiveVideoIdx((prev) => (prev + 1) % heroVideoList.length);
     }, intervalSec * 1000);
@@ -94,26 +107,67 @@ export const HomePage: React.FC<HomePageProps> = ({
   );
   const heroPoster = (settings.hero_images && settings.hero_images.length > 0 ? settings.hero_images[0] : null) || 
     "/images/hero_luxury_living_1791186963111.jpg";
-  const overlayOpacity = typeof settings.hero_video_overlay === 'number' ? settings.hero_video_overlay : 0.38;
-
-  const featuredProducts = products.filter(p => p.featured).slice(0, 6);
-  const featuredCategories = categories.filter(c => c.is_featured !== false && c.is_active !== false);
-  const approvedReviews = reviews.filter(r => r.is_approved);
+  const overlayOpacity = typeof settings.hero_video_overlay === 'number' ? settings.hero_video_overlay : 0.42;
 
   const [videoError, setVideoError] = useState(false);
-
-  React.useEffect(() => {
+  useEffect(() => {
     setVideoError(false);
   }, [currentHeroMedia]);
 
+  // Featured Categories and Products
+  const featuredCategories = useMemo(() => {
+    return categories.filter(c => c.is_featured !== false && c.is_active !== false);
+  }, [categories]);
+
+  // Filtered Featured Products based on category tab
+  const filteredProducts = useMemo(() => {
+    let list = products.filter(p => p.featured || p.is_bestseller);
+    if (list.length === 0) list = products;
+    if (selectedProductCategory !== 'all') {
+      list = list.filter(p => {
+        const cat = (p.category_id || '').toLowerCase();
+        return cat === selectedProductCategory.toLowerCase();
+      });
+    }
+    return list.slice(0, 6);
+  }, [products, selectedProductCategory]);
+
+  const approvedReviews = useMemo(() => {
+    return reviews.filter(r => r.is_approved);
+  }, [reviews]);
+
+  // Parallax Hero Container Ref
+  const heroParallaxRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (prefersReducedMotion() || !heroParallaxRef.current) return;
+    const ctx = gsap.context(() => {
+      gsap.to('.hero-bg-media', {
+        yPercent: 18,
+        ease: 'none',
+        scrollTrigger: {
+          trigger: heroParallaxRef.current,
+          start: 'top top',
+          end: 'bottom top',
+          scrub: true,
+        }
+      });
+    }, heroParallaxRef);
+
+    return () => ctx.revert();
+  }, []);
+
   return (
-    <div className="w-full">
+    <div className="w-full bg-[#FAF8F5] text-[#1A130F] selection:bg-[#DFC06A]/30">
       
-      {/* 1. CINEMATIC HERO SECTION: PROPORTIONAL MOBILE HEIGHT & TRUE FULL-BLEED SLIDESHOW */}
-      <section className="relative overflow-hidden h-[62vh] min-h-[420px] max-h-[520px] sm:h-[84vh] sm:min-h-[580px] sm:max-h-none lg:min-h-[90vh] flex items-center justify-center bg-[#15100D]">
-        
-        {/* Full-Bleed Media Background (100% width & height, edge-to-edge, perfectly framed on mobile) */}
-        <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none select-none z-0">
+      {/* =========================================================================
+          1. CINEMATIC HERO SECTION: LAYERED DEPTH, EDITORIAL TYPOGRAPHY & SMOOTH REVEAL
+         ========================================================================= */}
+      <section 
+        ref={heroParallaxRef}
+        className="relative overflow-hidden min-h-[92vh] lg:min-h-[96vh] flex items-center justify-center bg-[#140F0C] text-[#FAF6F0]"
+      >
+        {/* Full-Bleed Parallax Media Background */}
+        <div className="hero-bg-media absolute inset-0 w-full h-[120%] -top-[10%] overflow-hidden pointer-events-none select-none z-0">
           {isDirectVideo && !videoError ? (
             <video
               key={currentHeroMedia}
@@ -124,16 +178,16 @@ export const HomePage: React.FC<HomePageProps> = ({
               preload="auto"
               poster={resolveSafeImageUrl(heroPoster)}
               onError={() => setVideoError(true)}
-              className="w-full h-full object-cover object-[center_35%] sm:object-center transition-opacity duration-700"
+              className="w-full h-full object-cover object-center filter brightness-[0.82]"
             >
               <source src={currentHeroMedia} type="video/mp4" />
             </video>
           ) : currentYoutubeId ? (
-            <div key={currentYoutubeId} className="absolute inset-0 w-full h-full flex items-center justify-center overflow-hidden transition-opacity duration-700">
+            <div key={currentYoutubeId} className="absolute inset-0 w-full h-full flex items-center justify-center overflow-hidden">
               <iframe
                 src={`https://www.youtube-nocookie.com/embed/${currentYoutubeId}?autoplay=1&mute=1&loop=1&playlist=${currentYoutubeId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&iv_load_policy=3&disablekb=1`}
                 title="Wood Care Furniture Background Video"
-                className="w-[170%] sm:w-[125%] h-[120%] sm:h-[125%] min-w-full min-h-full object-cover pointer-events-none scale-100 sm:scale-110"
+                className="w-[170%] sm:w-[125%] h-[120%] sm:h-[125%] min-w-full min-h-full object-cover pointer-events-none scale-105"
                 allow="autoplay; encrypted-media; picture-in-picture"
                 tabIndex={-1}
               />
@@ -142,404 +196,702 @@ export const HomePage: React.FC<HomePageProps> = ({
             <img 
               key={currentHeroMedia}
               src={resolveSafeImageUrl(currentHeroMedia || heroPoster)} 
-              alt="Wood Care Furniture Showroom Collection" 
+              alt="Wood Care Furniture Architectural Showroom" 
               onError={(e) => {
                 const target = e.currentTarget as HTMLImageElement;
                 if (!target.src.includes('images.unsplash.com')) {
                   target.src = 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1920&q=80';
                 }
               }}
-              className="w-full h-full object-cover object-[center_35%] sm:object-center transition-all duration-700"
+              className="w-full h-full object-cover object-center transition-all duration-1000 filter brightness-[0.84]"
               loading="eager"
-              fetchPriority="high"
             />
           )}
 
-          {/* Subtle adjustable overlay for text readability - sharp and vibrant */}
+          {/* Deep Architectural Scrim Overlay */}
           <div 
-            className="absolute inset-0 bg-black pointer-events-none transition-opacity duration-300"
-            style={{ opacity: Math.min(overlayOpacity, 0.46) }}
+            className="absolute inset-0 bg-[#120E0C] pointer-events-none transition-opacity duration-500"
+            style={{ opacity: Math.min(overlayOpacity, 0.52) }}
           />
 
-          {/* Gentle bottom scrim fade transitioning into the next solid section */}
-          <div className="absolute inset-x-0 bottom-0 h-14 sm:h-24 bg-gradient-to-t from-black/60 via-black/20 to-transparent pointer-events-none" />
+          {/* Soft Bottom Gradient Fade into warm tone */}
+          <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#140F0C] via-[#140F0C]/60 to-transparent pointer-events-none" />
         </div>
 
-        {/* Slideshow Indicator Dots & Navigation */}
+        {/* Hero Slideshow Indicators */}
         {heroVideoList.length > 1 && (
-          <div className="absolute bottom-2 sm:bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 sm:gap-2 bg-black/50 backdrop-blur-md px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full border border-white/10 pointer-events-auto">
-            {heroVideoList.map((_, idx) => (
-              <button
-                key={idx}
-                onClick={() => setActiveVideoIdx(idx)}
-                className={`transition-all rounded-full ${
-                  activeVideoIdx === idx 
-                    ? 'w-5 sm:w-7 h-1.5 sm:h-2 bg-[#DFC06A]' 
-                    : 'w-1.5 sm:w-2 h-1.5 sm:h-2 bg-white/40 hover:bg-white/70'
-                }`}
-                aria-label={`Jump to hero slide ${idx + 1}`}
-                title={`Hero Slide ${idx + 1}`}
-              />
-            ))}
+          <div className="absolute bottom-8 right-6 sm:right-12 z-20 flex items-center gap-3 bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/15">
+            <span className="text-[11px] font-mono tracking-widest text-[#DFC06A]">
+              0{activeVideoIdx + 1}
+            </span>
+            <span className="text-[11px] text-stone-500">/</span>
+            <span className="text-[11px] font-mono text-stone-400">
+              0{heroVideoList.length}
+            </span>
+            <div className="flex items-center gap-1.5 pl-2">
+              {heroVideoList.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setActiveVideoIdx(idx)}
+                  className={`h-1 rounded-full transition-all duration-300 ${
+                    activeVideoIdx === idx 
+                      ? 'w-6 bg-[#DFC06A]' 
+                      : 'w-2 bg-white/30 hover:bg-white/60'
+                  }`}
+                  aria-label={`Slide ${idx + 1}`}
+                />
+              ))}
+            </div>
           </div>
         )}
 
-        {/* Centered Hero Content: Compact, Elegant Headline, Badge & Action CTAs */}
-        <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-24 lg:py-32 text-center flex flex-col items-center justify-center space-y-2.5 sm:space-y-6 md:space-y-8">
+        {/* Hero Content Container */}
+        <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-24 sm:py-32 text-center flex flex-col items-center justify-center space-y-6 sm:space-y-8">
           
-          {/* Subtle Location & Brand Badge */}
-          <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-0.5 sm:py-2 rounded-full bg-stone-900/70 backdrop-blur-md border border-[#DFC06A]/40 text-[9px] sm:text-xs md:text-sm font-medium tracking-[0.16em] sm:tracking-[0.2em] uppercase text-[#F3E5AB] shadow-2xl">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#DFC06A] animate-pulse" />
-            <span className="flex items-center gap-1 sm:gap-1.5">
-              <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#DFC06A]" />
-              <span>RAWALPINDI & ISLAMABAD · HANDCRAFTED FURNITURE</span>
-            </span>
-          </div>
+          {/* Subtle Location & Workshop Credibility Eyebrow */}
+          <motion.div 
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-[#DFC06A]/35 text-[11px] sm:text-xs tracking-[0.24em] uppercase text-[#F3E5AB]"
+          >
+            <MapPin className="w-3.5 h-3.5 text-[#DFC06A]" />
+            <span>Shamsabad, Rawalpindi · Twin Cities Bespoke Furniture</span>
+          </motion.div>
 
-          {/* Hero Heading */}
-          <h1 className="font-serif text-2xl leading-[1.16] sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-semibold tracking-tight text-[#FAF7F2] text-balance drop-shadow-[0_4px_24px_rgba(0,0,0,0.85)] max-w-4xl">
-            {settings.hero_heading || 'Furniture Designed for Beautiful Living'}
-          </h1>
+          {/* Hero Headline */}
+          <motion.h1 
+            initial={{ opacity: 0, y: 28 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.9, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
+            className="font-serif text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-[#FAF7F2] text-balance drop-shadow-[0_4px_30px_rgba(0,0,0,0.85)] max-w-4xl leading-[1.12]"
+          >
+            {settings.hero_heading || 'Handcrafted Solid Wood Living for Generations'}
+          </motion.h1>
 
-          {/* Supporting Subheading */}
-          <p className="text-xs sm:text-base md:text-lg lg:text-xl text-stone-200/95 font-light leading-relaxed max-w-xs sm:max-w-2xl mx-auto drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)] tracking-wide line-clamp-2 sm:line-clamp-none">
-            {settings.hero_subheading || 'Premium handcrafted furniture for homes, offices and commercial spaces across Rawalpindi and Islamabad.'}
-          </p>
+          {/* Subheading with editorial cadence */}
+          <motion.p 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.85, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            className="text-sm sm:text-lg md:text-xl text-stone-200/90 font-light leading-relaxed max-w-2xl mx-auto drop-shadow-[0_2px_12px_rgba(0,0,0,0.7)]"
+          >
+            {settings.hero_subheading || 'Premier solid Sheesham, Burmese Teak and bespoke upholstery crafted in our Shamsabad workshop and delivered across Rawalpindi & Islamabad.'}
+          </motion.p>
 
-          {/* Inquiry-Based Action CTAs: Responsive Horizontal row on mobile */}
-          <div className="pt-1 sm:pt-2 flex flex-row items-center justify-center gap-2.5 sm:gap-4 w-full sm:w-auto max-w-sm sm:max-w-none">
-            <button
+          {/* Action CTA Group */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.45, ease: [0.16, 1, 0.3, 1] }}
+            className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3.5 sm:gap-4 w-full sm:w-auto"
+          >
+            <MagneticButton
               onClick={() => onNavigate('/furniture')}
-              className="flex-1 sm:flex-initial px-4 py-2.5 sm:px-8 sm:py-4 bg-[#8C5D36] hover:bg-[#724827] text-white font-medium text-xs sm:text-base rounded-xl transition-all shadow-xl border border-[#DFC06A]/30 flex items-center justify-center gap-1.5 sm:gap-2 hover:scale-[1.02] active:scale-[0.98]"
+              className="w-full sm:w-auto px-8 py-4 bg-[#8C5D36] hover:bg-[#6E4424] text-white font-medium text-xs sm:text-sm tracking-wider uppercase rounded-xl transition-all shadow-[0_10px_30px_rgba(140,93,54,0.35)] border border-[#DFC06A]/30 flex items-center justify-center gap-2 group"
             >
-              <span>Explore</span>
-              <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            </button>
+              <span>Explore Furniture Catalog</span>
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </MagneticButton>
 
             <a
               href={getGeneralWhatsAppLink(settings.whatsapp, settings.brand_name || 'Wood Care Furniture')}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 sm:flex-initial px-4 py-2.5 sm:px-8 sm:py-4 bg-[#25D366] hover:bg-[#1EBE5D] text-slate-950 font-semibold text-xs sm:text-base rounded-xl transition-all shadow-xl flex items-center justify-center gap-1.5 sm:gap-2 hover:scale-[1.02] active:scale-[0.98]"
+              className="w-full sm:w-auto px-8 py-4 bg-white/10 hover:bg-white/20 text-[#FAF6F0] backdrop-blur-md font-medium text-xs sm:text-sm tracking-wider uppercase rounded-xl transition-all border border-white/20 flex items-center justify-center gap-2.5 shadow-lg"
             >
-              <MessageCircle className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5" />
-              <span>WhatsApp</span>
+              <MessageCircle className="w-4 h-4 text-[#25D366]" />
+              <span>WhatsApp Consultation</span>
             </a>
-          </div>
+          </motion.div>
 
-          {/* Refined Craftsmanship Promises */}
-          <div className="pt-1 sm:pt-2 flex flex-wrap items-center justify-center gap-1.5 sm:gap-4 text-stone-200 text-[9px] sm:text-xs md:text-sm tracking-wider uppercase font-medium">
-            <span className="inline-flex items-center gap-1 bg-black/50 backdrop-blur-sm px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-full border border-white/10 shadow-lg">
-              <Sparkles className="w-3 h-3 text-[#DFC06A]" /> Seasoned Hardwoods
+          {/* Quiet Unboxed Brand Credentials */}
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 1, delay: 0.6 }}
+            className="pt-4 flex flex-wrap items-center justify-center gap-2 sm:gap-6 text-stone-300 text-xs tracking-wider uppercase font-medium"
+          >
+            <span className="flex items-center gap-1.5 text-stone-200">
+              <Sparkles className="w-3.5 h-3.5 text-[#DFC06A]" /> Seasoned Hardwoods
             </span>
-            <span className="inline-flex items-center gap-1 bg-black/50 backdrop-blur-sm px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-full border border-white/10 shadow-lg">
-              <Sparkles className="w-3 h-3 text-[#DFC06A]" /> Custom Sizing
+            <span className="text-stone-500 hidden sm:inline">·</span>
+            <span className="flex items-center gap-1.5 text-stone-200">
+              <ShieldCheck className="w-3.5 h-3.5 text-[#DFC06A]" /> Termite-Proof Assurance
             </span>
-            <span className="inline-flex items-center gap-1 bg-black/50 backdrop-blur-sm px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-full border border-white/10 shadow-lg">
-              <Sparkles className="w-3 h-3 text-[#DFC06A]" /> Direct Workshop
+            <span className="text-stone-500 hidden sm:inline">·</span>
+            <span className="flex items-center gap-1.5 text-stone-200">
+              <Hammer className="w-3.5 h-3.5 text-[#DFC06A]" /> Workshop Direct Rates
             </span>
-          </div>
+          </motion.div>
 
         </div>
       </section>
 
-      {/* ANIMATED TEXT MARQUEE RIBBON (BETWEEN HERO AND FURNITURE CATEGORIES) */}
+      {/* =========================================================================
+          2. ARCHITECTURAL MARQUEE RIBBON (BETWEEN HERO AND FEATURED COLLECTIONS)
+         ========================================================================= */}
       <div 
-        className="marquee-container relative w-full overflow-hidden bg-[#18110D] border-y border-[#382619] py-2.5 sm:py-3.5 select-none z-10 cursor-default"
-        title="Wood Care Furniture — Hover to pause"
+        className="marquee-container relative w-full overflow-hidden bg-[#18110D] border-y border-[#382619] py-3.5 select-none z-10 cursor-default"
+        title="Wood Care Furniture Craftsmanship Highlights"
       >
         <div className="animate-marquee-infinite flex items-center whitespace-nowrap">
           {[
-            '100% Seasoned Solid Sheesham & Teak',
+            '100% Seasoned Solid Sheesham & Burmese Teak',
             'Termite-Proof Guaranteed Woodworking',
-            'Direct Factory Workshop Rates',
+            'Direct Factory Workshop Rates · No Retail Middlemen',
             'Master Artisan Mortise & Tenon Joinery',
-            'Custom Sizing & Bespoke Finish',
-            'Showroom & Workshop: Shamsabad, Rawalpindi',
-            'Free Measuring in Rawalpindi & Islamabad',
-            '10-Year Craftsmanship Assurance',
-            '100% Seasoned Solid Sheesham & Teak',
+            'Custom Dimensions & Bespoke Fabric Finishes',
+            'Showroom & Factory: Shamsabad, Rawalpindi',
+            'White-Glove Delivery Across Rawalpindi & Islamabad',
+            '10-Year Craftsmanship Warranty',
+            '100% Seasoned Solid Sheesham & Burmese Teak',
             'Termite-Proof Guaranteed Woodworking',
-            'Direct Factory Workshop Rates',
+            'Direct Factory Workshop Rates · No Retail Middlemen',
             'Master Artisan Mortise & Tenon Joinery',
-            'Custom Sizing & Bespoke Finish',
-            'Showroom & Workshop: Shamsabad, Rawalpindi',
-            'Free Measuring in Rawalpindi & Islamabad',
-            '10-Year Craftsmanship Assurance'
+            'Custom Dimensions & Bespoke Fabric Finishes',
+            'Showroom & Factory: Shamsabad, Rawalpindi',
+            'White-Glove Delivery Across Rawalpindi & Islamabad',
+            '10-Year Craftsmanship Warranty'
           ].map((item, idx) => (
             <div 
               key={idx} 
-              className="inline-flex items-center gap-3 sm:gap-4 px-4 sm:px-6 text-[10px] sm:text-xs md:text-sm font-medium tracking-[0.18em] sm:tracking-[0.22em] uppercase text-[#EAD8B7]"
+              className="inline-flex items-center gap-3 sm:gap-4 px-5 sm:px-7 text-xs sm:text-sm font-medium tracking-[0.2em] uppercase text-[#EAD8B7]"
             >
               <span>{item}</span>
-              <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#DFC06A] shrink-0 opacity-80" />
+              <Sparkles className="w-3.5 h-3.5 text-[#DFC06A] shrink-0 opacity-75" />
             </div>
           ))}
         </div>
       </div>
 
-      {/* 2. FURNITURE CATEGORIES SECTION - SOLID WARM WHITE / IVORY */}
-      <section className="bg-[#FAF7F2] py-20 sm:py-28 border-b border-[#EAE2D5] text-[#241A14]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-14 space-y-3 scroll-reveal">
-            <span className="text-xs sm:text-sm uppercase tracking-[0.28em] text-[#8C5D36] font-bold block">
-              OUR CURATED SPACES
-            </span>
-            <h2 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-bold text-[#241A14] tracking-tight">
-              Furniture Categories
-            </h2>
-            <p className="text-sm sm:text-base text-stone-600 leading-relaxed max-w-xl mx-auto">
-              Discover handcrafted collections built from termite-proof seasoned hardwoods, high-density comfort foam, and custom fabrics.
-            </p>
-          </div>
+      {/* =========================================================================
+          3. FEATURED COLLECTIONS: ASYMMETRICAL EDITORIAL GRID WITH STAGGERED REVEALS
+         ========================================================================= */}
+      <section className="bg-[#FAF8F5] py-20 sm:py-28 border-b border-[#E8DFD2]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+          
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 scroll-reveal">
+            <div className="space-y-3 max-w-2xl">
+              <span className="text-xs sm:text-sm uppercase tracking-[0.28em] text-[#8C5D36] font-bold block">
+                CURATED SPACES
+              </span>
+              <h2 className="font-serif text-3xl sm:text-5xl lg:text-6xl font-bold text-[#1A130F] tracking-tight">
+                Featured Collections
+              </h2>
+              <p className="text-sm sm:text-base text-stone-600 leading-relaxed">
+                Every collection is manufactured in our Shamsabad facility using seasoned timbers, kiln-dried joinery, and tailored upholstery fabrics.
+              </p>
+            </div>
 
-          {/* Categories Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
-            {featuredCategories.map((cat, idx) => (
-              <div 
-                key={cat.id}
-                onClick={() => onNavigate(`/category/${cat.slug}`)}
-                className={`group relative rounded-3xl overflow-hidden bg-[#FFFFFF] border border-[#E8DFC8] hover:border-[#8C5D36] cursor-pointer transition-luxury shadow-sm hover:shadow-2xl hover:-translate-y-2 flex flex-col justify-between scroll-reveal delay-${((idx % 4) + 1) * 100}`}
-              >
-                <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#F2ECE1]">
-                  <SafeImage 
-                    src={cat.image} 
-                    alt={cat.name} 
-                    className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-out"
-                  />
-                </div>
-
-                <div className="p-6 flex flex-col justify-between flex-1 space-y-3">
-                  <div>
-                    <h3 className="font-serif text-2xl font-bold text-[#241A14] group-hover:text-[#8C5D36] transition-colors mb-1.5">
-                      {cat.name}
-                    </h3>
-                    <p className="text-xs sm:text-sm text-stone-600 line-clamp-2 leading-relaxed">
-                      {cat.description}
-                    </p>
-                  </div>
-
-                  <div className="pt-4 border-t border-[#F0E8DC] flex items-center justify-between text-xs sm:text-sm font-semibold text-[#8C5D36]">
-                    <span>Explore Collection</span>
-                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1.5 transition-transform" />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="text-center pt-10 scroll-reveal">
-            <button 
+            <button
               onClick={() => onNavigate('/furniture')}
-              className="inline-flex items-center gap-2 px-8 py-3.5 bg-[#241A14] hover:bg-[#38271E] border border-[#3E2B20] text-[#FAF6F0] text-xs sm:text-sm font-semibold rounded-2xl transition-colors shadow-md hover:scale-[1.01]"
+              className="shrink-0 inline-flex items-center gap-2 text-xs sm:text-sm font-semibold uppercase tracking-wider text-[#8C5D36] hover:text-[#5F3E22] transition-colors group"
             >
-              <span>View All Categories & Subcategories</span>
-              <ArrowRight className="w-4 h-4 text-[#DFC06A]" />
+              <span>View Full Catalog</span>
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1.5 transition-transform" />
             </button>
           </div>
+
+          {/* Asymmetric Luxury Category Layout */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 sm:gap-8">
+            {featuredCategories.slice(0, 4).map((cat, idx) => {
+              // Create dynamic visual asymmetry: first item spans 7 columns, second 5, third 5, fourth 7
+              const colSpan = idx === 0 || idx === 3 ? 'md:col-span-7' : 'md:col-span-5';
+              const aspect = idx === 0 || idx === 3 ? 'aspect-[16/10]' : 'aspect-[4/3]';
+
+              return (
+                <div 
+                  key={cat.id}
+                  onClick={() => onNavigate(`/category/${cat.slug}`)}
+                  className={`group relative rounded-3xl overflow-hidden bg-white border border-[#E7DFD2] hover:border-[#C5A880] cursor-pointer shadow-sm hover:shadow-2xl transition-all duration-500 hover:-translate-y-1.5 flex flex-col justify-between scroll-reveal delay-${((idx % 4) + 1) * 100} ${colSpan}`}
+                >
+                  <div className={`relative ${aspect} w-full overflow-hidden bg-[#F2ECE1]`}>
+                    <SafeImage 
+                      src={cat.image} 
+                      alt={cat.name} 
+                      className="w-full h-full object-cover object-center group-hover:scale-106 transition-transform duration-800 ease-out"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-40 group-hover:opacity-70 transition-opacity duration-500" />
+                  </div>
+
+                  <div className="p-6 sm:p-8 flex flex-col justify-between flex-1 space-y-3 bg-white">
+                    <div>
+                      <span className="text-[10px] sm:text-[11px] uppercase tracking-widest text-[#8C5D36] font-semibold block mb-1">
+                        Collection 0{idx + 1}
+                      </span>
+                      <h3 className="font-serif text-2xl sm:text-3xl font-bold text-[#1A130F] group-hover:text-[#8C5D36] transition-colors mb-1.5">
+                        {cat.name}
+                      </h3>
+                      <p className="text-xs sm:text-sm text-stone-600 line-clamp-2 leading-relaxed">
+                        {cat.description || 'Kiln-seasoned hardwood joinery with bespoke sizing options.'}
+                      </p>
+                    </div>
+
+                    <div className="pt-4 border-t border-[#F2ECE1] flex items-center justify-between text-xs sm:text-sm font-semibold text-[#8C5D36]">
+                      <span>Explore {cat.name} Collection</span>
+                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1.5 transition-transform" />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
         </div>
       </section>
 
-      {/* 3. ABOUT US SECTION - SOLID CRISP WARM IVORY */}
-      <section className="bg-[#FAF8F5] py-20 sm:py-28 border-b border-[#EAE3D6] text-[#241A14]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-14">
+      {/* =========================================================================
+          4. CURATED MASTERPIECES: DEPTH-AWARE PRODUCT GRID WITH 3D TILT
+         ========================================================================= */}
+      <section className="bg-[#FAF8F5] py-20 sm:py-28 border-b border-[#E8DFD2]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+          
           <div className="text-center max-w-3xl mx-auto space-y-3 scroll-reveal">
             <span className="text-xs sm:text-sm uppercase tracking-[0.28em] text-[#8C5D36] font-bold block">
-              HERITAGE & CRAFTSMANSHIP
+              PORTFOLIO SELECTIONS
             </span>
-            <h2 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-bold text-[#241A14]">
-              About Us: Crafted for Beautiful Living
+            <h2 className="font-serif text-3xl sm:text-5xl lg:text-6xl font-bold text-[#1A130F] tracking-tight">
+              Curated Masterpieces
             </h2>
-            <p className="text-sm sm:text-base text-stone-600 max-w-xl mx-auto">
-              Discover the legacy of seasoned solid wood manufacturing, in-house joinery, and direct wholesale pricing in Shamsabad, Rawalpindi.
+            <p className="text-sm sm:text-base text-stone-600 leading-relaxed max-w-xl mx-auto">
+              Inspect individual handcrafted dining tables, bed sets, luxury sofas, and architectural accents ready for bespoke sizing.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-            <div className="space-y-6 scroll-reveal">
-              <h3 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-bold text-[#241A14] leading-snug">
-                Furniture Built to Endure Across Generations
-              </h3>
+          {/* Interactive Filter Pills */}
+          <div className="flex items-center justify-center flex-wrap gap-2 sm:gap-2.5 scroll-reveal">
+            <button
+              onClick={() => setSelectedProductCategory('all')}
+              className={`px-5 py-2 rounded-full text-xs font-semibold tracking-wider uppercase transition-all duration-300 ${
+                selectedProductCategory === 'all'
+                  ? 'bg-[#1A130F] text-[#FAF6F0] shadow-md'
+                  : 'bg-white border border-[#E7DFD2] text-stone-600 hover:text-[#1A130F] hover:border-[#8C5D36]'
+              }`}
+            >
+              All Pieces
+            </button>
+            {categories.slice(0, 5).map(cat => (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedProductCategory(cat.id)}
+                className={`px-5 py-2 rounded-full text-xs font-semibold tracking-wider uppercase transition-all duration-300 ${
+                  selectedProductCategory.toLowerCase() === cat.id.toLowerCase()
+                    ? 'bg-[#1A130F] text-[#FAF6F0] shadow-md'
+                    : 'bg-white border border-[#E7DFD2] text-stone-600 hover:text-[#1A130F] hover:border-[#8C5D36]'
+                }`}
+              >
+                {cat.name}
+              </button>
+            ))}
+          </div>
 
-              <p className="text-sm sm:text-base text-stone-700 leading-relaxed">
-                At {settings.brand_name}, we operate both our dedicated manufacturing workshop and customer showroom in Shamsabad, Rawalpindi. We believe furniture should not be disposable. Every dining table, master bed suite, and curved sofa is handcrafted by artisans who understand wood seasoning, mortise-and-tenon structural joinery, and ergonomic luxury.
+          {/* Dynamic Depth-Aware Products Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+            {filteredProducts.map((product) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                onOpenProduct={onOpenProduct}
+              />
+            ))}
+          </div>
+
+          <div className="text-center pt-6 scroll-reveal">
+            <button 
+              onClick={() => onNavigate('/furniture')}
+              className="inline-flex items-center gap-2 px-8 py-4 bg-[#1A130F] hover:bg-[#8C5D36] text-[#FAF6F0] text-xs sm:text-sm font-semibold tracking-wider uppercase rounded-2xl transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-[1.01]"
+            >
+              <span>Explore Complete 2026 Collection</span>
+              <ArrowRight className="w-4 h-4 text-[#DFC06A]" />
+            </button>
+          </div>
+
+        </div>
+      </section>
+
+      {/* =========================================================================
+          5. CRAFTSMANSHIP & WORKSHOP STORYTELLING: SPLIT-SCREEN EDITORIAL
+         ========================================================================= */}
+      <section className="bg-[#18110D] py-20 sm:py-32 border-b border-[#302117] text-[#FAF6F0] relative overflow-hidden">
+        
+        {/* Soft atmospheric background glow */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-[#8C5D36]/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16 relative z-10">
+          
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
+            
+            {/* Story Editorial Text */}
+            <div className="lg:col-span-6 space-y-6 scroll-reveal">
+              <span className="text-xs sm:text-sm uppercase tracking-[0.28em] text-[#C5A880] font-bold block">
+                THE SHAMSABAD ATELIER
+              </span>
+              <h2 className="font-serif text-3xl sm:text-5xl lg:text-6xl font-bold text-[#FAF6F0] leading-tight">
+                Generational Joinery, Kiln-Seasoned Timbers
+              </h2>
+              
+              <p className="text-sm sm:text-base text-stone-300 leading-relaxed font-light">
+                At Wood Care Furniture, we believe luxury is defined by what lies beneath the finish. In our Shamsabad workshop, master joiners inspect every log of Pakistani Sheesham, Burmese Teak, and Walnut for grain symmetry and moisture balance before joinery begins.
               </p>
 
-              <p className="text-sm sm:text-base text-stone-700 leading-relaxed">
-                By working directly with us—the manufacturer—you avoid retail middlemen markups, have complete freedom to customize dimensions and upholstery fabrics, and receive direct personal oversight on every order.
-              </p>
+              {/* Craftsmanship Pillars */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                <div className="p-5 rounded-2xl bg-[#221812] border border-[#443227] space-y-2">
+                  <div className="flex items-center gap-2 text-[#C5A880]">
+                    <Hammer className="w-4 h-4" />
+                    <span className="font-bold text-xs uppercase tracking-wider">Mortise & Tenon</span>
+                  </div>
+                  <p className="text-xs text-stone-400 leading-relaxed">
+                    Zero reliance on fragile plastic fittings or superficial staples. Authentic wood-to-wood joinery.
+                  </p>
+                </div>
 
-              <div className="pt-2 flex items-center gap-6 sm:gap-8">
-                <div>
-                  <span className="font-serif text-3xl font-bold text-[#8C5D36] block">100%</span>
-                  <span className="text-xs sm:text-sm text-stone-500 font-medium">Kiln Seasoned Timber</span>
-                </div>
-                <div className="h-10 w-px bg-[#E5DCD0]" />
-                <div>
-                  <span className="font-serif text-3xl font-bold text-[#8C5D36] block">Bespoke</span>
-                  <span className="text-xs sm:text-sm text-stone-500 font-medium">Custom Dimensions</span>
-                </div>
-                <div className="h-10 w-px bg-[#E5DCD0]" />
-                <div>
-                  <span className="font-serif text-3xl font-bold text-[#8C5D36] block">Direct</span>
-                  <span className="text-xs sm:text-sm text-stone-500 font-medium">Factory Advantage</span>
+                <div className="p-5 rounded-2xl bg-[#221812] border border-[#443227] space-y-2">
+                  <div className="flex items-center gap-2 text-[#C5A880]">
+                    <ShieldCheck className="w-4 h-4" />
+                    <span className="font-bold text-xs uppercase tracking-wider">Termite Treated</span>
+                  </div>
+                  <p className="text-xs text-stone-400 leading-relaxed">
+                    Double vacuum pressure treatment protects every internal frame against pests for decades.
+                  </p>
                 </div>
               </div>
 
-              <div className="pt-4">
+              <div className="pt-4 flex items-center gap-4">
                 <button
                   onClick={() => onNavigate('/about')}
-                  className="px-7 py-3.5 bg-[#768A7D] hover:bg-[#5C7367] text-white rounded-xl text-xs sm:text-sm font-semibold transition-luxury shadow-md hover:scale-[1.01]"
+                  className="px-7 py-3.5 bg-[#8C5D36] hover:bg-[#6D4323] text-white text-xs sm:text-sm font-semibold tracking-wider uppercase rounded-xl transition-all shadow-md"
                 >
-                  Read Our Story & Values →
+                  Discover Our Workshop Heritage →
                 </button>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            {/* Visual Photography Composition */}
+            <div className="lg:col-span-6 grid grid-cols-2 gap-4">
               <div className="space-y-4">
-                <SafeImage 
-                  src="/images/cat_living_room.jpg" 
-                  alt="Wood Care Living Setup" 
-                  className="rounded-3xl object-cover aspect-[4/5] w-full shadow-lg border border-[#E5DCD0]"
-                />
-                <div className="p-5 bg-[#FFFFFF] rounded-3xl border border-[#E5DCD0] shadow-sm">
-                  <h4 className="font-serif text-base font-bold text-[#241A14] mb-1">
-                    Termite-Proof Assurance
-                  </h4>
-                  <p className="text-xs text-stone-600 leading-relaxed">
-                    Every wood beam is chemically conditioned against borers and termites.
-                  </p>
+                <div className="aspect-[4/5] rounded-3xl overflow-hidden border border-[#443227] shadow-2xl bg-[#140F0C]">
+                  <SafeImage 
+                    src="/images/cat_living_room_1791186977406.jpg" 
+                    alt="Master Woodcraftsmanship in Living Room" 
+                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
+                  />
+                </div>
+                <div className="p-5 rounded-2xl bg-[#221812] border border-[#443227]">
+                  <span className="text-2xl font-serif font-bold text-[#DFC06A] block">8–10%</span>
+                  <span className="text-xs text-stone-400">Kiln Moisture Equilibrium to prevent wood warping in Twin Cities climates.</span>
                 </div>
               </div>
 
               <div className="space-y-4 pt-8">
-                <div className="p-5 bg-[#FFFFFF] rounded-3xl border border-[#E5DCD0] shadow-sm">
-                  <h4 className="font-serif text-base font-bold text-[#241A14] mb-1">
-                    High-Density Molty Foam
-                  </h4>
-                  <p className="text-xs text-stone-600 leading-relaxed">
-                    Resilient cushioning that retains shape for years without sagging.
-                  </p>
+                <div className="p-5 rounded-2xl bg-[#221812] border border-[#443227]">
+                  <span className="text-2xl font-serif font-bold text-[#DFC06A] block">Molty Foam</span>
+                  <span className="text-xs text-stone-400">High-resilience foam layers with multi-density support for posture comfort.</span>
                 </div>
-                <SafeImage 
-                  src="/images/cat_bedroom.jpg" 
-                  alt="Solid Wood Bed Craftsmanship" 
-                  className="rounded-3xl object-cover aspect-[4/5] w-full shadow-lg border border-[#E5DCD0]"
-                />
+                <div className="aspect-[4/5] rounded-3xl overflow-hidden border border-[#443227] shadow-2xl bg-[#140F0C]">
+                  <SafeImage 
+                    src="/images/cat_bedroom_1791186990246.jpg" 
+                    alt="Solid Wood Bed Joinery" 
+                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
+                  />
+                </div>
               </div>
             </div>
 
           </div>
+
         </div>
       </section>
 
-      {/* 4. OUR SERVICES - SOLID ALABASTER / LIGHT WOOD TONE */}
-      <section className="bg-[#F7F2EA] py-20 sm:py-28 border-b border-[#EAE1D3] text-[#241A14]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-14 space-y-3 scroll-reveal">
+      {/* =========================================================================
+          6. SEPARATE NAVIGATION CARDS: SERVICES & GUIDES
+         ========================================================================= */}
+      <section className="bg-[#FAF8F5] py-20 sm:py-28 border-b border-[#E8DFD2]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+          
+          {/* Card 1: Our Services: Workshop Direct */}
+          <div 
+            onClick={() => onNavigate('/services')}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNavigate('/services'); } }}
+            className="group cursor-pointer bg-white border border-[#E7DFD2] hover:border-[#8C5D36] rounded-3xl p-8 sm:p-12 shadow-sm hover:shadow-2xl transition-all duration-400 flex flex-col md:flex-row md:items-center justify-between gap-6 scroll-reveal"
+          >
+            <div className="space-y-3 max-w-2xl">
+              <span className="text-xs uppercase tracking-[0.28em] text-[#8C5D36] font-bold block">
+                WHAT WE OFFER
+              </span>
+              <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-[#1A130F] group-hover:text-[#8C5D36] transition-colors leading-tight">
+                Our Services: Workshop Direct
+              </h2>
+              <p className="text-sm sm:text-base text-stone-600 leading-relaxed font-light">
+                Comprehensive furniture manufacturing, architectural woodworking, custom upholstery, and interior wood care in the Twin Cities.
+              </p>
+            </div>
+
+            <div className="shrink-0 flex items-center">
+              <span className="inline-flex items-center gap-2.5 px-6 py-3.5 bg-[#8C5D36] group-hover:bg-[#6D4323] text-white text-xs sm:text-sm font-semibold tracking-wider uppercase rounded-xl transition-all shadow-md group-hover:shadow-lg">
+                <span>Open Our Services</span>
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </span>
+            </div>
+          </div>
+
+          {/* Card 2: Guides & Articles */}
+          <div 
+            onClick={() => onNavigate('/blog')}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNavigate('/blog'); } }}
+            className="group cursor-pointer bg-white border border-[#E7DFD2] hover:border-[#8C5D36] rounded-3xl p-8 sm:p-12 shadow-sm hover:shadow-2xl transition-all duration-400 flex flex-col md:flex-row md:items-center justify-between gap-6 scroll-reveal"
+          >
+            <div className="space-y-3 max-w-2xl">
+              <span className="text-xs uppercase tracking-[0.28em] text-[#8C5D36] font-bold block">
+                WOODWORKING KNOWLEDGE
+              </span>
+              <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-[#1A130F] group-hover:text-[#8C5D36] transition-colors leading-tight">
+                Guides & Articles
+              </h2>
+              <p className="text-sm sm:text-base text-stone-600 leading-relaxed font-light">
+                Practical advice on wood moisture, termite seasoning, fabric choices, and upholstery maintenance in Pakistani homes.
+              </p>
+            </div>
+
+            <div className="shrink-0 flex items-center">
+              <span className="inline-flex items-center gap-2.5 px-6 py-3.5 bg-[#1A130F] group-hover:bg-[#8C5D36] text-white text-xs sm:text-sm font-semibold tracking-wider uppercase rounded-xl transition-all shadow-md group-hover:shadow-lg">
+                <span>Open Guides & Articles</span>
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </span>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      {/* =========================================================================
+          7. BESPOKE COMMISSIONS & CUSTOM FURNITURE PROCESS
+         ========================================================================= */}
+      <section className="bg-[#FAF8F5] py-20 sm:py-28 border-b border-[#E8DFD2]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-14">
+          
+          <div className="text-center max-w-3xl mx-auto space-y-3 scroll-reveal">
             <span className="text-xs sm:text-sm uppercase tracking-[0.28em] text-[#8C5D36] font-bold block">
-              WHAT WE OFFER
+              BESPOKE ARCHITECTURAL CRAFT
             </span>
-            <h2 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-bold text-[#241A14]">
-              Our Services: Workshop Direct
+            <h2 className="font-serif text-3xl sm:text-5xl lg:text-6xl font-bold text-[#1A130F] tracking-tight">
+              Custom Furniture Commissions
             </h2>
-            <p className="text-sm sm:text-base text-stone-600 max-w-xl mx-auto">
-              Comprehensive furniture manufacturing, architectural woodworking, and interior wood care in the Twin Cities.
+            <p className="text-sm sm:text-base text-stone-600 leading-relaxed max-w-xl mx-auto">
+              Bring your floor plans, sketches, Pinterest boards, or room dimensions directly to our Shamsabad workshop for collaborative design.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {services.map((service, idx) => (
+          {/* 4-Step Bespoke Journey */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              {
+                step: '01',
+                title: 'Design Consultation',
+                desc: 'Share your dimensions, Pinterest mood boards, or sketches directly on WhatsApp or in our showroom.'
+              },
+              {
+                step: '02',
+                title: 'Timber & Fabric Selection',
+                desc: 'Select from seasoned Sheesham, Burmese Teak, and imported Turkish & Italian fabric swatches.'
+              },
+              {
+                step: '03',
+                title: 'Handcrafted in Workshop',
+                desc: 'Our Shamsabad master artisans carve, join, sand, and finish every piece with mortise-and-tenon strength.'
+              },
+              {
+                step: '04',
+                title: 'White-Glove Setup',
+                desc: 'Padded delivery, assembly, and precise placement in your residence anywhere in Rawalpindi or Islamabad.'
+              }
+            ].map((st, idx) => (
               <div 
-                key={service.id}
-                className={`bg-[#FFFFFF] border border-[#E6DDCE] rounded-3xl p-6 sm:p-7 flex flex-col justify-between hover:border-[#768A7D] transition-luxury hover:-translate-y-1 shadow-sm hover:shadow-xl scroll-reveal delay-${((idx % 4) + 1) * 100}`}
+                key={idx}
+                className={`p-6 sm:p-7 rounded-3xl bg-white border border-[#E7DFD2] shadow-sm hover:border-[#8C5D36] transition-all duration-300 flex flex-col justify-between scroll-reveal delay-${(idx + 1) * 100}`}
               >
-                <div>
-                  <h3 className="font-serif text-2xl font-bold text-[#241A14] mb-2 leading-snug">
-                    {service.title}
+                <div className="space-y-3">
+                  <span className="font-mono text-2xl font-bold text-[#C5A880] block">
+                    {st.step}
+                  </span>
+                  <h3 className="font-serif text-xl font-bold text-[#1A130F]">
+                    {st.title}
                   </h3>
-                  <p className="text-xs sm:text-sm text-stone-600 leading-relaxed mb-4">
-                    {service.description}
+                  <p className="text-xs sm:text-sm text-stone-600 leading-relaxed">
+                    {st.desc}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="text-center pt-2 scroll-reveal">
+            <button
+              onClick={() => onNavigate('/custom')}
+              className="inline-flex items-center gap-2 px-8 py-4 bg-[#8C5D36] hover:bg-[#6D4323] text-white text-xs sm:text-sm font-semibold tracking-wider uppercase rounded-xl transition-all shadow-md hover:scale-[1.01]"
+            >
+              <span>Start Your Custom Commission Brief →</span>
+            </button>
+          </div>
+
+        </div>
+      </section>
+
+      {/* =========================================================================
+          8. COMPLETED SPACES & SHOWROOM GALLERY PREVIEW
+         ========================================================================= */}
+      <section className="bg-[#18110D] py-20 sm:py-28 border-b border-[#302117] text-[#FAF6F0]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+          
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 scroll-reveal">
+            <div className="space-y-3 max-w-2xl">
+              <span className="text-xs uppercase tracking-[0.28em] text-[#C5A880] font-bold block">
+                COMPLETED RESIDENCES & SHOWROOM
+              </span>
+              <h2 className="font-serif text-3xl sm:text-5xl lg:text-6xl font-bold text-[#FAF6F0] tracking-tight">
+                Spaces Gallery
+              </h2>
+              <p className="text-sm sm:text-base text-stone-300 font-light">
+                Real photographs of handcrafted furniture installed in luxury residences across Bahria Town, DHA, Islamabad, and Rawalpindi.
+              </p>
+            </div>
+
+            <button
+              onClick={() => onNavigate('/gallery')}
+              className="shrink-0 text-xs sm:text-sm font-semibold uppercase tracking-wider text-[#C5A880] hover:underline"
+            >
+              Explore Full Gallery ({gallery.length} Photos) →
+            </button>
+          </div>
+
+          {/* Staggered Gallery Preview */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {gallery.slice(0, 3).map((item, idx) => (
+              <div
+                key={item.id}
+                onClick={() => onNavigate('/gallery')}
+                className={`group relative rounded-3xl overflow-hidden bg-[#241A14] border border-[#443227] hover:border-[#C5A880] cursor-pointer shadow-xl transition-all duration-500 hover:-translate-y-1.5 scroll-reveal delay-${(idx + 1) * 150}`}
+              >
+                <div className="aspect-[4/3] w-full overflow-hidden bg-[#140F0C]">
+                  <SafeImage 
+                    src={item.image} 
+                    alt={item.title} 
+                    className="w-full h-full object-cover group-hover:scale-106 transition-transform duration-700 ease-out opacity-90 group-hover:opacity-100"
+                  />
+                </div>
+
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent flex flex-col justify-end p-6 text-white">
+                  <span className="text-[10px] uppercase tracking-wider text-[#DFC06A] font-bold mb-1">
+                    {item.category || (item as any).category_name || 'Shamsabad Showcase'}
+                  </span>
+                  <h3 className="font-serif text-xl sm:text-2xl font-bold leading-snug">
+                    {item.title}
+                  </h3>
+                  <p className="text-xs text-stone-300 line-clamp-1 mt-1">
+                    {item.description}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+        </div>
+      </section>
+
+      {/* =========================================================================
+          9. CLIENT REVIEWS & VERIFIED TESTIMONIALS
+         ========================================================================= */}
+      <section className="bg-[#FAF8F5] py-20 sm:py-28 border-b border-[#E8DFD2]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+          
+          <div className="text-center max-w-3xl mx-auto space-y-3 scroll-reveal">
+            <span className="text-xs sm:text-sm uppercase tracking-[0.28em] text-[#8C5D36] font-bold block">
+              VERIFIED CLIENT FEEDBACK
+            </span>
+            <h2 className="font-serif text-3xl sm:text-5xl lg:text-6xl font-bold text-[#1A130F] tracking-tight">
+              Testimonials from the Twin Cities
+            </h2>
+            <p className="text-sm sm:text-base text-stone-600 leading-relaxed max-w-xl mx-auto">
+              Read authentic feedback from homeowners who commissioned bespoke living suites, dining tables, and solid wood bedroom furniture.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
+            {approvedReviews.slice(0, 3).map((rev, idx) => (
+              <div 
+                key={rev.id} 
+                className={`bg-white p-7 sm:p-8 rounded-3xl border border-[#E7DFD2] flex flex-col justify-between shadow-sm hover:shadow-xl hover:border-[#8C5D36] transition-all duration-300 scroll-reveal delay-${(idx + 1) * 100}`}
+              >
+                <div className="space-y-4">
+                  <div className="flex items-center gap-1 text-[#DFC06A]">
+                    {Array.from({ length: rev.rating || 5 }).map((_, i) => (
+                      <span key={i} className="text-lg">★</span>
+                    ))}
+                  </div>
+                  <p className="text-sm text-stone-700 leading-relaxed italic">
+                    "{rev.review_text}"
                   </p>
                 </div>
 
-                <div className="pt-4 border-t border-[#F0E7D8] flex items-center justify-between text-xs font-semibold text-[#8C5D36]">
-                  <span>Inquire on WhatsApp</span>
-                  <ArrowRight className="w-4 h-4" />
+                <div className="pt-5 border-t border-[#F2ECE1] mt-6 flex items-center justify-between text-xs text-stone-500">
+                  <div>
+                    <span className="font-bold text-[#1A130F] text-sm block">{rev.author_name}</span>
+                    <span className="text-stone-500">{rev.location}</span>
+                  </div>
+                  <span className="text-stone-400 font-mono">{rev.created_at}</span>
                 </div>
               </div>
             ))}
           </div>
+
+          <div className="text-center pt-2 scroll-reveal">
+            <button 
+              onClick={() => onNavigate('/reviews')}
+              className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-[#8C5D36] hover:underline"
+            >
+              Read All Reviews & Share Your Experience →
+            </button>
+          </div>
+
         </div>
       </section>
 
-      {/* 9. BLOG & GUIDES - SOLID WARM IVORY */}
-      <section className="bg-[#FAF7F2] py-20 sm:py-28 border-b border-[#EBE3D5] text-[#241A14]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-14 space-y-3 scroll-reveal">
+      {/* =========================================================================
+          10. FREQUENTLY ASKED QUESTIONS
+         ========================================================================= */}
+      <section className="bg-[#FAF8F5] py-20 sm:py-28 border-b border-[#E8DFD2]">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+          
+          <div className="text-center space-y-3 scroll-reveal">
             <span className="text-xs sm:text-sm uppercase tracking-[0.28em] text-[#8C5D36] font-bold block">
-              WOODWORKING KNOWLEDGE
+              HELPFUL ANSWERS
             </span>
-            <h2 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-bold text-[#241A14]">
-              Guides & Articles
-            </h2>
-            <p className="text-sm sm:text-base text-stone-600 max-w-xl mx-auto">
-              Practical advice on wood moisture, termite seasoning, and upholstery maintenance in Pakistani homes.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {blogPosts.slice(0, 2).map((post, idx) => (
-              <div 
-                key={post.id}
-                onClick={() => onNavigate('/blog')}
-                className={`bg-[#FFFFFF] border border-[#E8DFCF] hover:border-[#768A7D] rounded-3xl overflow-hidden cursor-pointer transition-luxury shadow-sm hover:shadow-xl flex flex-col justify-between scroll-reveal delay-${((idx % 2) + 1) * 150}`}
-              >
-                <div className="aspect-[16/9] w-full overflow-hidden bg-[#F2ECE1]">
-                  <SafeImage src={post.featured_image} alt={post.title} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
-                </div>
-                <div className="p-6 space-y-2">
-                  <span className="text-[10px] uppercase tracking-wider font-semibold text-[#8C5D36]">{post.category} · {post.read_time}</span>
-                  <h3 className="font-serif text-2xl font-bold text-[#241A14] leading-snug">{post.title}</h3>
-                  <p className="text-xs sm:text-sm text-stone-600 line-clamp-2 leading-relaxed">{post.excerpt}</p>
-                </div>
-                <div className="p-6 pt-0 border-t border-[#F2EADA] flex items-center justify-between text-xs font-semibold text-[#8C5D36]">
-                  <span>Read Full Guide</span>
-                  <ArrowRight className="w-4 h-4" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* 10. FAQ SECTION - SOLID SOFT WARM SAND NEUTRAL */}
-      <section className="bg-[#F0EAE0] py-20 sm:py-28 border-b border-[#E2D8C9] text-[#241A14]">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-14 space-y-3 scroll-reveal">
-            <span className="text-xs sm:text-sm uppercase tracking-[0.28em] text-[#8C5D36] font-bold block">
-              COMMON INQUIRIES
-            </span>
-            <h2 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-bold text-[#241A14]">
+            <h2 className="font-serif text-3xl sm:text-5xl lg:text-6xl font-bold text-[#1A130F] tracking-tight">
               Frequently Asked Questions
             </h2>
-            <p className="text-sm sm:text-base text-stone-600 max-w-xl mx-auto">
-              Everything you need to know about customizing furniture, delivery, and guarantees.
+            <p className="text-sm sm:text-base text-stone-600 max-w-xl mx-auto leading-relaxed">
+              Transparent answers regarding timber seasoning, bespoke manufacturing timelines, delivery, and guarantees.
             </p>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3.5">
             {faqs.slice(0, 5).map((faq, idx) => {
               const isOpen = openFaq === faq.id;
               return (
                 <div
                   key={faq.id}
-                  className={`bg-[#FFFFFF] border border-[#E2D8C9] rounded-3xl overflow-hidden shadow-sm transition-colors scroll-reveal delay-${((idx % 5) + 1) * 75}`}
+                  className={`bg-white border transition-all duration-300 rounded-2xl overflow-hidden shadow-xs ${
+                    isOpen ? 'border-[#8C5D36]' : 'border-[#E7DFD2] hover:border-[#C5A880]'
+                  } scroll-reveal delay-${(idx + 1) * 75}`}
                 >
                   <button
                     onClick={() => setOpenFaq(isOpen ? null : faq.id)}
-                    className="w-full p-6 text-left flex items-center justify-between gap-4 font-serif text-lg sm:text-xl font-bold text-[#241A14]"
+                    className="w-full p-6 text-left flex items-center justify-between gap-4 font-serif text-lg sm:text-xl font-bold text-[#1A130F]"
                   >
                     <span>{faq.question}</span>
                     {isOpen ? (
@@ -550,7 +902,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                   </button>
 
                   {isOpen && (
-                    <div className="px-6 pb-6 text-xs sm:text-sm text-stone-600 leading-relaxed border-t border-[#EFE8DC] pt-4">
+                    <div className="px-6 pb-6 text-xs sm:text-sm text-stone-600 leading-relaxed border-t border-[#F2ECE1] pt-4 font-light">
                       {faq.answer}
                     </div>
                   )}
@@ -558,116 +910,44 @@ export const HomePage: React.FC<HomePageProps> = ({
               );
             })}
           </div>
-        </div>
-      </section>
 
-      {/* 7. CLIENT REVIEWS - SECOND-LAST CONTENT POSITION */}
-      <section className="bg-[#18110D] py-20 sm:py-28 border-b border-[#2C1E16] text-[#FAF6F0]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-14 space-y-3 scroll-reveal">
-            <span className="text-xs sm:text-sm uppercase tracking-[0.28em] text-[#C5A880] font-bold block">
-              VERIFIED TESTIMONIALS
-            </span>
-            <h2 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-bold text-[#FAF6F0]">
-              Client Reviews
-            </h2>
-            <p className="text-sm sm:text-base text-stone-300 max-w-xl mx-auto">
-              Real feedback from homeowners and commercial clients in Rawalpindi, Islamabad, Bahria Town, and DHA.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
-            {approvedReviews.slice(0, 3).map((rev, idx) => (
-              <div key={rev.id} className={`bg-[#221812] p-7 rounded-3xl border border-[#443227] flex flex-col justify-between shadow-lg scroll-reveal delay-${((idx % 3) + 1) * 100}`}>
-                <div className="space-y-3.5">
-                  <div className="flex items-center gap-1 text-[#C5A880]">
-                    {Array.from({ length: rev.rating }).map((_, i) => (
-                      <span key={i} className="text-base">★</span>
-                    ))}
-                  </div>
-                  <p className="text-sm text-stone-300 leading-relaxed italic">
-                    "{rev.review_text}"
-                  </p>
-                </div>
-
-                <div className="pt-4 border-t border-[#443227] mt-5 flex items-center justify-between text-xs text-stone-400">
-                  <div>
-                    <span className="font-bold text-[#FAF6F0] text-sm block">{rev.author_name}</span>
-                    <span>{rev.location}</span>
-                  </div>
-                  <span className="text-stone-500">{rev.created_at}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="text-center pt-8 scroll-reveal">
-            <button 
-              onClick={() => onNavigate('/reviews')}
-              className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-[#C5A880] hover:underline"
+          <div className="text-center pt-2">
+            <button
+              onClick={() => onNavigate('/faq')}
+              className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-[#8C5D36] hover:underline"
             >
-              Read More Reviews & Submit Yours →
+              View Complete FAQ Center →
             </button>
           </div>
+
         </div>
       </section>
 
-      {/* 8. VIP INTERIOR CONSULTATION - FINAL CONTENT SECTION BEFORE FOOTER */}
-      <section className="bg-[#1C140F] py-20 sm:py-28 border-b border-[#2E2018] text-[#FAF6F0]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-4xl mx-auto p-10 sm:p-14 lg:p-16 rounded-3xl bg-[#241A14] border border-[#443227] shadow-2xl text-center space-y-6 scroll-reveal-scale">
-            <span className="text-xs uppercase tracking-[0.28em] text-[#C5A880] font-bold block">
-              CUSTOM SPACES & CONTRACT FURNISHING
-            </span>
-            <h2 className="font-serif text-3xl sm:text-5xl lg:text-6xl font-bold text-[#FAF6F0] leading-tight">
-              Furnish Your Residence with Direct Workshop Assurance
-            </h2>
-            <p className="text-sm sm:text-base text-stone-200 leading-relaxed max-w-2xl mx-auto">
-              Whether furnishing a new villa in DHA or upgrading drawing room suites in Rawalpindi, share your room dimensions or photos directly with our master artisans.
-            </p>
-            <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
-              <a
-                href={getGeneralWhatsAppLink(settings.whatsapp, settings.brand_name)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full sm:w-auto px-8 py-4 bg-[#25D366] hover:bg-[#1EBE5D] text-black font-bold text-sm sm:text-base rounded-2xl transition-luxury shadow-xl flex items-center justify-center gap-2 hover:scale-[1.02]"
-              >
-                <MessageCircle className="w-5 h-5" />
-                <span>Discuss Your Project on WhatsApp</span>
-              </a>
-              <button
-                onClick={() => onNavigate('/custom')}
-                className="w-full sm:w-auto px-8 py-4 bg-[#2A1D16] hover:bg-[#38271E] border border-[#443227] hover:border-[#768A7D] text-[#FAF6F0] font-semibold text-sm sm:text-base rounded-2xl transition-luxury hover:scale-[1.01]"
-              >
-                Explore Custom Woodworking →
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 12. SHOWROOM & WORKSHOP LOCATION - SOLID WARM CRISP IVORY */}
-      <section className="bg-[#FAF8F5] py-20 sm:py-28 text-[#241A14]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-14 space-y-3">
+      {/* =========================================================================
+          11. SHOWROOM & WORKSHOP CONCIERGE: SHAMSABAD LOCATION
+         ========================================================================= */}
+      <section className="bg-[#FAF8F5] py-20 sm:py-28 text-[#1A130F]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+          
+          <div className="text-center max-w-3xl mx-auto space-y-3 scroll-reveal">
             <span className="text-xs sm:text-sm uppercase tracking-[0.28em] text-[#8C5D36] font-bold block">
               VISIT OUR WORKSHOP
             </span>
-            <h2 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-bold text-[#241A14]">
-              Showroom & Factory: Shamsabad, Rawalpindi
+            <h2 className="font-serif text-3xl sm:text-5xl lg:text-6xl font-bold text-[#1A130F] tracking-tight">
+              Shamsabad Workshop & Showroom
             </h2>
-            <p className="text-sm sm:text-base text-stone-600 max-w-xl mx-auto">
-              Experience the solid timber quality, test sofa comfort layers, and consult directly with our master woodworkers.
+            <p className="text-sm sm:text-base text-stone-600 max-w-xl mx-auto leading-relaxed">
+              Experience solid timber quality firsthand, inspect joinery, test foam densities, and consult directly with our master woodworkers.
             </p>
           </div>
 
-          <div className="bg-[#FFFFFF] border border-[#E5DDD0] rounded-3xl p-8 sm:p-12 shadow-xl grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+          <div className="bg-white border border-[#E7DFD2] rounded-3xl p-8 sm:p-12 shadow-xl grid grid-cols-1 lg:grid-cols-2 gap-8 items-center scroll-reveal">
             <div className="space-y-6">
-              <h3 className="font-serif text-3xl font-bold text-[#241A14]">
+              <h3 className="font-serif text-2xl sm:text-3xl font-bold text-[#1A130F]">
                 M33J+C6H, Shamsabad, Rawalpindi
               </h3>
-              <p className="text-sm sm:text-base text-stone-600 leading-relaxed">
-                We welcome clients from across Islamabad, Rawalpindi, and surrounding areas. Come see wood seasoning in progress, view foam layers, and select from our imported fabric swatches.
+              <p className="text-sm sm:text-base text-stone-600 leading-relaxed font-light">
+                We warmly welcome homeowners, interior designers, and architects from across Islamabad and Rawalpindi. Witness our kiln-seasoning processes, review upholstery books, and place custom orders directly at factory prices.
               </p>
 
               <div className="space-y-3 text-xs sm:text-sm text-stone-700">
@@ -686,22 +966,22 @@ export const HomePage: React.FC<HomePageProps> = ({
                   href={getGeneralWhatsAppLink(settings.whatsapp, settings.brand_name)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-6 py-3.5 bg-[#25D366] hover:bg-[#1EBE5D] text-black font-bold rounded-2xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md hover:scale-[1.01]"
+                  className="px-7 py-3.5 bg-[#25D366] hover:bg-[#1EBE5D] text-black font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm transition-all"
                 >
                   <MessageCircle className="w-4 h-4" />
-                  <span>WhatsApp for Directions</span>
+                  <span>WhatsApp for Live Location</span>
                 </a>
 
                 <button
                   onClick={() => onNavigate('/contact')}
-                  className="px-6 py-3.5 bg-[#241A14] hover:bg-[#38271E] text-stone-100 font-semibold rounded-2xl text-xs sm:text-sm hover:scale-[1.01]"
+                  className="px-7 py-3.5 bg-[#1A130F] hover:bg-[#8C5D36] text-white font-semibold rounded-xl text-xs sm:text-sm transition-all"
                 >
-                  Contact & Showroom Page →
+                  Contact & Directions Page →
                 </button>
               </div>
             </div>
 
-            <div className="aspect-[16/10] w-full rounded-2xl overflow-hidden border border-[#E5DDD0] bg-[#FAF7F2]">
+            <div className="aspect-[16/10] w-full rounded-2xl overflow-hidden border border-[#E7DFD2] bg-[#FAF8F5]">
               <iframe
                 title="Wood Care Furniture Google Maps Location"
                 src="https://maps.google.com/maps?q=Shamsabad%20Rawalpindi&t=&z=14&ie=UTF8&iwloc=&output=embed"
@@ -710,6 +990,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               />
             </div>
           </div>
+
         </div>
       </section>
 

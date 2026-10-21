@@ -210,11 +210,23 @@ export const Header: React.FC<HeaderProps> = ({
           <button 
             onClick={() => navigateTo('/services')} 
             className={`relative py-2 transition-colors hover:text-[#8C5D36] ${
-              isNavActive('/services') ? 'text-[#8C5D36] font-semibold' : ''
+              isNavActive('/services') || isNavActive('/our-services') ? 'text-[#8C5D36] font-semibold' : ''
             }`}
           >
-            <span>Services</span>
-            {isNavActive('/services') && (
+            <span>Our Services</span>
+            {(isNavActive('/services') || isNavActive('/our-services')) && (
+              <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#8C5D36] rounded-full" />
+            )}
+          </button>
+
+          <button 
+            onClick={() => navigateTo('/blog')} 
+            className={`relative py-2 transition-colors hover:text-[#8C5D36] ${
+              isNavActive('/blog') || isNavActive('/guides') ? 'text-[#8C5D36] font-semibold' : ''
+            }`}
+          >
+            <span>Guides & Articles</span>
+            {(isNavActive('/blog') || isNavActive('/guides')) && (
               <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#8C5D36] rounded-full" />
             )}
           </button>
@@ -369,7 +381,7 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
 
               <button 
-                onClick={() => navigateTo('/faqs')}
+                onClick={() => navigateTo('/faq')}
                 className="w-full text-left font-serif text-lg font-bold text-[#241A14] py-2.5 border-b border-[#EDE6DC]"
               >
                 FAQs

@@ -10,29 +10,50 @@
   --color-brand-sage: #768A7D;
   --color-brand-gold: #D4AF37;
   --color-brand-brass: #C5A880;
+  --color-brand-walnut: #3A2518;
+  --color-brand-ivory: #FAF8F5;
   --color-brand-text: #FAF6F0;
   --color-brand-muted: #D1C5B8;
 }
 
 body {
   font-family: var(--font-sans);
-  background-color: #1A130F;
-  color: #FAF6F0;
+  background-color: #FAF8F5;
+  color: #1A130F;
   overflow-x: hidden;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 html {
   scroll-behavior: smooth;
-  scroll-padding-top: 5rem;
+  scroll-padding-top: 5.5rem;
 }
 
 h1, h2, h3, .font-serif-display {
   font-family: var(--font-serif);
 }
 
-/* Custom smooth transitions */
+/* Custom smooth luxury transitions */
 .transition-luxury {
-  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+::-webkit-scrollbar-track {
+  background: #FAF8F5;
+}
+::-webkit-scrollbar-thumb {
+  background: #D4AF37;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #8C5D36;
 }
 
 /* Hide scrollbar for category tabs */
@@ -47,8 +68,8 @@ h1, h2, h3, .font-serif-display {
 /* Scroll Animation & Reveal Classes (GPU Accelerated) */
 .scroll-reveal {
   opacity: 0;
-  transform: translateY(24px);
-  transition: opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1), transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translateY(28px);
+  transition: opacity 0.85s cubic-bezier(0.16, 1, 0.3, 1), transform 0.85s cubic-bezier(0.16, 1, 0.3, 1);
   will-change: opacity, transform;
 }
 
@@ -59,7 +80,7 @@ h1, h2, h3, .font-serif-display {
 
 .scroll-reveal-fade {
   opacity: 0;
-  transition: opacity 0.85s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 0.95s cubic-bezier(0.16, 1, 0.3, 1);
   will-change: opacity;
 }
 
@@ -69,8 +90,8 @@ h1, h2, h3, .font-serif-display {
 
 .scroll-reveal-scale {
   opacity: 0;
-  transform: scale(0.95);
-  transition: opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1), transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: scale(0.96);
+  transition: opacity 0.85s cubic-bezier(0.16, 1, 0.3, 1), transform 0.85s cubic-bezier(0.16, 1, 0.3, 1);
   will-change: opacity, transform;
 }
 
@@ -80,8 +101,11 @@ h1, h2, h3, .font-serif-display {
 }
 
 /* Delays for staggered card items */
+.delay-75  { transition-delay: 75ms; }
 .delay-100 { transition-delay: 100ms; }
+.delay-150 { transition-delay: 150ms; }
 .delay-200 { transition-delay: 200ms; }
+.delay-250 { transition-delay: 250ms; }
 .delay-300 { transition-delay: 300ms; }
 .delay-400 { transition-delay: 400ms; }
 .delay-500 { transition-delay: 500ms; }
@@ -99,12 +123,18 @@ h1, h2, h3, .font-serif-display {
 .animate-marquee-infinite {
   display: flex;
   width: max-content;
-  animation: marquee-horizontal 38s linear infinite;
+  animation: marquee-horizontal 42s linear infinite;
   will-change: transform;
 }
 
 .marquee-container:hover .animate-marquee-infinite {
   animation-play-state: paused;
+}
+
+/* Image reveal wipe effect */
+.mask-reveal {
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+  transition: clip-path 1.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Reduced motion preference respect */
@@ -122,5 +152,7 @@ h1, h2, h3, .font-serif-display {
   .animate-marquee-infinite {
     animation-play-state: paused !important;
   }
+  .transition-luxury {
+    transition: none !important;
+  }
 }
-
