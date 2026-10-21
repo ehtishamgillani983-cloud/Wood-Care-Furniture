@@ -537,8 +537,10 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
       const res = await Store.saveProduct(updated);
       if (res.success) {
         showToast(`Saved "${updated.name}" to Supabase cloud!`, 'success');
+        setIsProductModalOpen(false);
+        setEditingProduct(null);
       } else {
-        showToast(`Saved locally only. Cloud sync: ${res.error}`, 'error');
+        showToast(`Cloud sync error: ${res.error}`, 'error');
       }
     } else {
       const slug = prodForm.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now().toString().slice(-4);
@@ -567,12 +569,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
       const res = await Store.saveProduct(newProd);
       if (res.success) {
         showToast(`Added product "${newProd.name}" to Supabase cloud!`, 'success');
+        setIsProductModalOpen(false);
+        setEditingProduct(null);
       } else {
-        showToast(`Added locally only. Cloud sync: ${res.error}`, 'error');
+        showToast(`Cloud sync error: ${res.error}`, 'error');
       }
     }
-    setIsProductModalOpen(false);
-    setEditingProduct(null);
   };
 
   const handleOpenNewCategory = () => {
@@ -615,8 +617,10 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
       const res = await Store.saveCategory(updated);
       if (res.success) {
         showToast(`Updated category "${updated.name}" in Supabase cloud!`, 'success');
+        setIsCategoryModalOpen(false);
+        setEditingCategory(null);
       } else {
-        showToast(`Updated locally only. Cloud sync error: ${res.error}`, 'error');
+        showToast(`Cloud sync error: ${res.error}`, 'error');
       }
     } else {
       const slug = catForm.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
@@ -633,12 +637,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
       const res = await Store.saveCategory(newCat);
       if (res.success) {
         showToast(`Created category "${newCat.name}" in Supabase cloud!`, 'success');
+        setIsCategoryModalOpen(false);
+        setEditingCategory(null);
       } else {
-        showToast(`Created locally only. Cloud sync error: ${res.error}`, 'error');
+        showToast(`Cloud sync error: ${res.error}`, 'error');
       }
     }
-    setIsCategoryModalOpen(false);
-    setEditingCategory(null);
   };
 
   const handleOpenNewGallery = () => {

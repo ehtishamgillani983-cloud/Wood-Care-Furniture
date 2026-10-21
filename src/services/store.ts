@@ -461,7 +461,23 @@ export const Store = {
       // 3. Push products
       const prods = this.getProducts();
       if (prods.length > 0) {
-        const payloadProds = prods.map(sanitizeProductForSupabase);
+        const validCatIds = new Set(cats.map(c => c.id));
+        const verifiedProds = prods.map(p => {
+          let catId = p.category_id;
+          if (!validCatIds.has(catId)) {
+            const match = cats.find(c => 
+              c.id.toLowerCase() === (catId || '').toLowerCase() || 
+              c.slug.toLowerCase() === (catId || '').toLowerCase() ||
+              c.name.toLowerCase() === (catId || '').toLowerCase()
+            );
+            catId = match ? match.id : (cats[0]?.id || 'living-room');
+          }
+          return {
+            ...p,
+            category_id: catId
+          };
+        });
+        const payloadProds = verifiedProds.map(sanitizeProductForSupabase);
         const { error: prodErr } = await supabase.from('products').upsert(payloadProds);
         if (prodErr) throw prodErr;
       }
@@ -713,6 +729,128 @@ export const Store = {
     });
   },
 
+  /**
+   * Confirms that a parent category exists in Supabase before attaching products.
+   * If not found in Supabase, automatically syncs the category from local store first.
+   * Returns the exact, verified category ID in Supabase.
+   */
+  async ensureCategoryInSupabase(categoryIdOrSlug: string): Promise<{ categoryId: string | null; error?: string }> {
+    if (!isSupabaseConfigured || !supabase || !categoryIdOrSlug) {
+      return { categoryId: null };
+    }
+    const clean = categoryIdOrSlug.trim();
+    const cleanLower = clean.toLowerCase();
+
+    try {
+      // 1. Direct match by ID in Supabase
+      const { data: byId } = await supabase
+        .from('categories')
+        .select('id')
+        .eq('id', clean)
+        .maybeSingle();
+
+      if (byId?.id) {
+        return { categoryId: byId.id };
+      }
+
+      // 2. Direct match by slug in Supabase
+      const { data: bySlug } = await supabase
+        .from('categories')
+        .select('id')
+        .eq('slug', cleanLower)
+        .maybeSingle();
+
+      if (bySlug?.id) {
+        return { categoryId: bySlug.id };
+      }
+
+      // 3. Category does not exist in Supabase yet. Find it in local categories.
+      const localCategories = this.getCategories();
+      const localCat = localCategories.find(c => 
+        c.id.toLowerCase() === cleanLower || 
+        c.slug.toLowerCase() === cleanLower ||
+        c.name.toLowerCase() === cleanLower
+      );
+
+      if (localCat) {
+        // Sync parent category to Supabase FIRST and confirm
+        const catPayload = sanitizeCategoryForSupabase(localCat);
+        const { error: catErr } = await supabase.from('categories').upsert([catPayload]);
+        if (catErr) {
+          console.warn('Failed to insert parent category to Supabase:', catErr);
+          return { 
+            categoryId: null, 
+            error: `Parent category "${localCat.name}" could not be confirmed in Supabase (${catErr.message}). Please ensure you are logged in as an authorized admin.` 
+          };
+        }
+        return { categoryId: localCat.id };
+      }
+
+      // 4. Fallback: check if any category exists in Supabase
+      const { data: anyCat } = await supabase
+        .from('categories')
+        .select('id')
+        .limit(1)
+        .maybeSingle();
+
+      if (anyCat?.id) {
+        return { categoryId: anyCat.id };
+      }
+
+      return { 
+        categoryId: null, 
+        error: `Category "${categoryIdOrSlug}" not found in catalogue.` 
+      };
+    } catch (err: any) {
+      return { categoryId: null, error: err?.message || 'Error verifying category in database.' };
+    }
+  },
+
+  /**
+   * Confirms that a subcategory exists in Supabase, syncing it first if necessary.
+   */
+  async ensureSubcategoryInSupabase(subId: string, verifiedParentCatId: string): Promise<string | null> {
+    if (!isSupabaseConfigured || !supabase || !subId) return null;
+    const clean = subId.trim();
+
+    try {
+      const { data: byId } = await supabase
+        .from('subcategories')
+        .select('id')
+        .eq('id', clean)
+        .maybeSingle();
+
+      if (byId?.id) return byId.id;
+
+      const { data: bySlug } = await supabase
+        .from('subcategories')
+        .select('id')
+        .eq('slug', clean.toLowerCase())
+        .maybeSingle();
+
+      if (bySlug?.id) return bySlug.id;
+
+      // Find in local subcategories and push with verified parent category ID
+      const localSubs = this.getSubcategories();
+      const localSub = localSubs.find(s => s.id === clean || s.slug === clean.toLowerCase());
+      if (localSub) {
+        const payload = {
+          id: localSub.id,
+          category_id: verifiedParentCatId,
+          name: localSub.name,
+          slug: localSub.slug,
+          order_index: typeof localSub.order_index === 'number' ? localSub.order_index : 0,
+          is_active: localSub.is_active ?? true
+        };
+        const { error: insErr } = await supabase.from('subcategories').upsert([payload]);
+        if (!insErr) return localSub.id;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  },
+
   async saveProduct(prod: Product): Promise<{ success: boolean; error?: string }> {
     const sanitizedProd: Product = {
       ...prod,
@@ -721,21 +859,43 @@ export const Store = {
       price_visible: false,
       quote_only: true
     };
-    const current = this.getProducts().filter(p => p.id !== sanitizedProd.id && p.slug.toLowerCase() !== sanitizedProd.slug.toLowerCase());
-    const list = [sanitizedProd, ...current];
-    setLocal(STORAGE_KEYS.PRODUCTS, list);
+
     if (isSupabaseConfigured && supabase) {
       try {
+        // Step 1: Confirm parent category exists in Supabase first
+        const rawCatId = sanitizedProd.category_id || 'living-room';
+        const { categoryId: verifiedCatId, error: catError } = await this.ensureCategoryInSupabase(rawCatId);
+
+        if (catError || !verifiedCatId) {
+          const errMsg = catError || `Parent category "${rawCatId}" could not be confirmed in Supabase.`;
+          return { success: false, error: errMsg };
+        }
+
+        sanitizedProd.category_id = verifiedCatId;
+
+        // Step 2: Confirm subcategory if present
+        if (sanitizedProd.subcategory_id) {
+          const verifiedSubId = await this.ensureSubcategoryInSupabase(sanitizedProd.subcategory_id, verifiedCatId);
+          sanitizedProd.subcategory_id = verifiedSubId || undefined;
+        }
+
+        // Step 3: Insert product with verified foreign keys
         const payload = sanitizeProductForSupabase(sanitizedProd);
-        const { error } = await supabase.from('products').upsert([payload]);
-        if (error) {
-          console.error('Supabase products upsert error:', error);
-          return { success: false, error: error.message };
+        const { error: prodErr } = await supabase.from('products').upsert([payload]);
+        if (prodErr) {
+          console.error('Supabase products upsert error:', prodErr);
+          return { success: false, error: prodErr.message };
         }
       } catch (err: any) {
         return { success: false, error: err?.message || 'Network error' };
       }
     }
+
+    // Persist locally only when confirmed or when cloud not configured
+    const current = this.getProducts().filter(p => p.id !== sanitizedProd.id && p.slug.toLowerCase() !== sanitizedProd.slug.toLowerCase());
+    const list = [sanitizedProd, ...current];
+    setLocal(STORAGE_KEYS.PRODUCTS, list);
+
     return { success: true };
   },
 

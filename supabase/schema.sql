@@ -448,7 +448,57 @@ VALUES
 ON CONFLICT (email) DO UPDATE SET role = 'super_admin';
 
 -- --------------------------------------------------
--- E. Supabase Storage Bucket Configuration
+-- E. Standard Categories & Subcategories Seeding
+-- Guarantees parent categories exist so products foreign keys are satisfied
+-- --------------------------------------------------
+INSERT INTO categories (id, name, slug, description, image, order_index, is_active, is_featured)
+VALUES
+  ('living-room', 'Living Room', 'living-room', 'Curated sofas, sculpted coffee tables, TV media consoles, and luxury accent seating.', '/images/cat_living_room_1791186977406.jpg', 1, true, true),
+  ('bedroom', 'Bedroom', 'bedroom', 'Master bed suites, floating nightstands, solid wood wardrobes, and vanity dressers.', '/images/cat_bedroom_1791186990246.jpg', 2, true, true),
+  ('dining', 'Dining', 'dining', 'Grand solid wood dining tables, ergonomic dining chairs, and buffet sideboards.', '/images/cat_dining_1791187001317.jpg', 3, true, true),
+  ('custom-furniture', 'Custom Furniture', 'custom-furniture', 'Bespoke architectural woodworking, customized luxury sofas, and sculptural focal pieces.', '/images/cat_custom_chair_1791187012133.jpg', 4, true, true),
+  ('office', 'Office', 'office', 'Executive desks, conference tables, ergonomic work chairs, and credenzas.', '/images/hero_luxury_living_1791186963111.jpg', 5, true, true),
+  ('outdoor', 'Outdoor', 'outdoor', 'Weather-treated teak patio lounges, garden dining tables, and veranda chairs.', '/images/cat_dining_1791187001317.jpg', 6, true, false),
+  ('kids', 'Kids', 'kids', 'Solid wood study desks, bunk beds, and child-safe organization units.', '/images/cat_bedroom_1791186990246.jpg', 7, true, false)
+ON CONFLICT (id) DO UPDATE SET 
+  name = EXCLUDED.name, 
+  slug = EXCLUDED.slug, 
+  description = EXCLUDED.description, 
+  image = EXCLUDED.image, 
+  order_index = EXCLUDED.order_index;
+
+INSERT INTO subcategories (id, category_id, name, slug, order_index, is_active)
+VALUES
+  ('sub-lr-1', 'living-room', 'Sofas & Sofa Sets', 'sofas', 1, true),
+  ('sub-lr-2', 'living-room', 'L Shape Sectionals', 'l-shape-sofas', 2, true),
+  ('sub-lr-3', 'living-room', 'Coffee Tables', 'coffee-tables', 3, true),
+  ('sub-lr-4', 'living-room', 'Side & End Tables', 'side-tables', 4, true),
+  ('sub-lr-5', 'living-room', 'TV Media Units', 'tv-units', 5, true),
+  ('sub-lr-6', 'living-room', 'Consoles & Credenzas', 'consoles', 6, true),
+  ('sub-bd-1', 'bedroom', 'Beds & Bed Sets', 'beds', 1, true),
+  ('sub-bd-2', 'bedroom', 'Bedside Tables', 'bedside-tables', 2, true),
+  ('sub-bd-3', 'bedroom', 'Dressing Tables', 'dressing-tables', 3, true),
+  ('sub-bd-4', 'bedroom', 'Wardrobes & Armoires', 'wardrobes', 4, true),
+  ('sub-bd-5', 'bedroom', 'Chest of Drawers', 'chest-of-drawers', 5, true),
+  ('sub-dn-1', 'dining', 'Dining Tables', 'dining-tables', 1, true),
+  ('sub-dn-2', 'dining', 'Dining Chairs', 'dining-chairs', 2, true),
+  ('sub-dn-3', 'dining', 'Complete Dining Sets', 'dining-sets', 3, true),
+  ('sub-dn-4', 'dining', 'Buffets & Sideboards', 'buffets', 4, true),
+  ('sub-of-1', 'office', 'Executive Desks', 'executive-desks', 1, true),
+  ('sub-of-2', 'office', 'Conference Tables', 'conference-tables', 2, true),
+  ('sub-of-3', 'office', 'Office Seating', 'office-chairs', 3, true),
+  ('sub-of-4', 'office', 'File Cabinets & Bookshelves', 'office-storage', 4, true),
+  ('sub-cs-1', 'custom-furniture', 'Bespoke Accent Chairs', 'bespoke-chairs', 1, true),
+  ('sub-cs-2', 'custom-furniture', 'Custom Sofa Manufacturing', 'custom-sofas', 2, true),
+  ('sub-cs-3', 'custom-furniture', 'Architectural Woodwork', 'architectural-woodwork', 3, true)
+ON CONFLICT (id) DO UPDATE SET
+  category_id = EXCLUDED.category_id,
+  name = EXCLUDED.name,
+  slug = EXCLUDED.slug,
+  order_index = EXCLUDED.order_index;
+
+-- --------------------------------------------------
+-- F. Supabase Storage Bucket Configuration
 -- Public 'media' bucket for showroom photos, videos, and logos
 -- --------------------------------------------------
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
